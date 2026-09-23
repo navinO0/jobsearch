@@ -78,10 +78,13 @@ Deploy Nginx using `deploy/nginx.conf.example` for SSL termination, rate limitin
 - [n8n Reusable Sub-Workflow Catalog (WF-001 to WF-081)](docs/N8N_WORKFLOWS.md)
 - [26-Source Integration Matrix & Compliance Policies](docs/SOURCE_MATRIX.md)
 - [API & Webhook Specification](docs/API.md)
+- [n8n v2 Detailed Workflow & Sub-Workflow Manual](n8n/v2/README.md)
+- [n8n v2 Step-by-Step Workflow Execution Lifecycle](docs/WORKFLOW_EXECUTION_STEPS.md)
 - [PostgreSQL Database Architecture & Data Dictionary](docs/DATABASE.md)
 - [AI Architecture, Prompt Safety & Zod Validation](docs/AI.md)
 - [Security Posture, SSRF Prevention & Anti-Spam Governance](docs/SECURITY.md)
 - [Production Deployment Guide (PM2, Nginx, Docker)](docs/DEPLOYMENT.md)
+- [Coolify Cloud Deployment & Env Guide](docs/COOLIFY.md)
 - [Day-2 Operations, Monitoring & DLQ Recovery](docs/OPERATIONS.md)
 
 ---
