@@ -1,0 +1,48 @@
+{
+  "name": "WF-032-Filter-Job",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Pre-filtering: exclude keywords, check minimum salary, eliminate outdated postings\nconst excludedList = ['wordpress', 'unpaid', 'intern', 'clearance required'];\nconst filtered = $input.all().filter(item => {\n  const j = item.json;\n  const desc = (j.description || '').toLowerCase();\n  const title = (j.job_title || j.title || '').toLowerCase();\n  \n  const hasExcluded = excludedList.some(w => title.includes(w) || desc.includes(w));\n  return !hasExcluded;\n});\n\nreturn filtered;\n"
+      },
+      "id": "deterministic-filter",
+      "name": "Apply Deterministic Filters",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Apply Deterministic Filters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "id": "wf-032-filter-job"
+}

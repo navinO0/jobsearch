@@ -7,12 +7,9 @@ import {
   Building2,
   Calendar,
   CheckCircle,
-  AlertTriangle,
-  Sparkles,
   FileText,
   Send,
   FolderOpen,
-  Mail,
 } from 'lucide-react';
 import {
   Dialog,
@@ -90,19 +87,19 @@ export default function JobModal({ job, onClose, onStatusChange }: JobModalProps
       const data = await res.json();
       if (data.success) {
         if (type === 'resume') {
-          setDocMsg('ATS Tailored Resume generated successfully!');
+          setDocMsg('ATS Tailored Resume generated');
           setPreviewHtml(data.resumePreview);
         } else if (type === 'cover') {
-          setDocMsg('Job-specific Cover Letter generated!');
+          setDocMsg('Cover Letter generated');
           setPreviewHtml(data.coverLetterPreview);
         } else if (type === 'email') {
-          setDocMsg('Application email prepared and queued in Outbox!');
+          setDocMsg('Application email queued in Outbox');
         } else {
-          setDocMsg('Full Application Package created (Resume + Cover Letter + Outbox)!');
+          setDocMsg('Application Package created');
           setPreviewHtml(data.resumePreview);
         }
       } else {
-        setDocMsg(data.error || 'Failed to generate document');
+        setDocMsg(data.error || 'Failed to generate');
       }
     } catch (e: any) {
       setDocMsg(e.message);
@@ -113,148 +110,123 @@ export default function JobModal({ job, onClose, onStatusChange }: JobModalProps
 
   return (
     <Dialog open={!!job} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 bg-[#0f172a] border-slate-700/80 text-slate-100 shadow-2xl rounded-2xl overflow-hidden">
+      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col p-0 border bg-card text-card-foreground shadow-lg rounded-lg overflow-hidden">
         {/* Header */}
-        <DialogHeader className="p-6 bg-[#131d33] border-b border-slate-800">
+        <DialogHeader className="p-5 border-b bg-muted/20">
           <div className="flex items-start justify-between gap-4">
-            <div className="space-y-1.5">
-              <div className="flex items-center space-x-2">
-                <Badge variant="outline" className="border-cyan-500/40 text-cyan-400 text-xs px-2">
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5">
+                <Badge variant="outline" className="text-[10px] font-normal">
                   {job.source}
                 </Badge>
                 {job.remote_type && (
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge variant="secondary" className="text-[10px] font-normal">
                     {job.remote_type}
                   </Badge>
                 )}
                 {job.recruiter_email && (
-                  <Badge variant="success" className="text-xs bg-emerald-950 text-emerald-300 border border-emerald-500/30">
-                    HR Email Verified
+                  <Badge variant="success" className="text-[10px] font-normal">
+                    Verified Recruiter Email
                   </Badge>
                 )}
               </div>
-              <DialogTitle className="text-2xl font-bold tracking-tight text-white">
+              <DialogTitle className="text-lg font-semibold tracking-tight text-foreground">
                 {job.job_title}
               </DialogTitle>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400 pt-1">
-                <span className="flex items-center space-x-1 font-medium text-slate-200">
-                  <Building2 className="w-3.5 h-3.5 text-cyan-400" />
+              <div className="flex items-center gap-3 text-xs text-muted-foreground pt-0.5">
+                <span className="flex items-center gap-1 font-medium text-foreground">
+                  <Building2 className="w-3.5 h-3.5" />
                   <span>{job.company_name}</span>
                 </span>
-                <span className="flex items-center space-x-1">
-                  <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                <span>•</span>
+                <span className="flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5" />
                   <span>{job.location || 'Remote'}</span>
                 </span>
-                {job.posted_at && (
-                  <span className="flex items-center space-x-1">
-                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                    <span>{new Date(job.posted_at).toLocaleDateString()}</span>
-                  </span>
-                )}
               </div>
             </div>
 
-            {/* Match Score Badge */}
-            <div className="flex flex-col items-end">
-              <div className="flex items-baseline space-x-1">
-                <span
-                  className={`text-3xl font-extrabold ${
-                    score >= 80
-                      ? 'text-emerald-400'
-                      : score >= 60
-                      ? 'text-cyan-400'
-                      : 'text-amber-400'
-                  }`}
-                >
-                  {score}%
-                </span>
-                <span className="text-xs text-slate-400">match</span>
+            {/* Match Score */}
+            <div className="text-right">
+              <div className="text-2xl font-bold font-mono text-foreground">
+                {score}%
               </div>
-              <span className="text-[10px] text-slate-400">ATS Alignment</span>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                ATS Match
+              </span>
             </div>
           </div>
         </DialogHeader>
 
-        {/* Scrollable Content Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 text-sm">
-          {/* Action Center: Document Generation */}
-          <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-cyan-300 flex items-center space-x-1.5">
-                <Sparkles className="w-4 h-4 text-cyan-400" />
-                <span>On-Demand ATS Generation & Outbox Actions</span>
-              </span>
-              {docMsg && <span className="text-xs text-emerald-400 font-medium">{docMsg}</span>}
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-5 text-xs">
+          {/* Action Toolbar */}
+          <div className="border rounded-md p-3 bg-muted/10 space-y-2">
+            <div className="flex items-center justify-between text-xs font-medium">
+              <span className="text-foreground">Generation & Application Actions</span>
+              {docMsg && <span className="text-emerald-500 font-normal">{docMsg}</span>}
             </div>
-            <div className="flex flex-wrap gap-2 pt-1">
+            <div className="flex flex-wrap items-center gap-1.5">
               <Button
                 variant="outline"
                 size="sm"
                 disabled={generating}
                 onClick={() => handleGenerate('resume')}
-                className="text-xs border-slate-700 bg-slate-950 hover:bg-slate-800 text-white flex items-center space-x-1.5"
+                className="h-7 text-xs"
               >
-                <FileText className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Generate ATS Resume</span>
+                <FileText className="w-3 h-3 mr-1" />
+                Tailor Resume
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 disabled={generating}
                 onClick={() => handleGenerate('cover')}
-                className="text-xs border-slate-700 bg-slate-950 hover:bg-slate-800 text-white flex items-center space-x-1.5"
+                className="h-7 text-xs"
               >
-                <FileText className="w-3.5 h-3.5 text-purple-400" />
-                <span>Generate Cover Letter</span>
+                <FileText className="w-3 h-3 mr-1" />
+                Cover Letter
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 disabled={generating}
                 onClick={() => handleGenerate('package')}
-                className="text-xs border-cyan-700/50 bg-cyan-950/40 hover:bg-cyan-900/50 text-cyan-200 flex items-center space-x-1.5"
+                className="h-7 text-xs"
               >
-                <FolderOpen className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Generate Application Package</span>
+                <FolderOpen className="w-3 h-3 mr-1" />
+                Package
               </Button>
 
-              {/* Display Send Email only if Recruiter Email exists */}
-              {job.recruiter_email ? (
+              {job.recruiter_email && (
                 <Button
-                  variant="outline"
+                  variant="default"
                   size="sm"
                   disabled={generating}
                   onClick={() => handleGenerate('email')}
-                  className="text-xs border-emerald-700/60 bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-300 flex items-center space-x-1.5"
+                  className="h-7 text-xs"
                 >
-                  <Send className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Draft Recruiter Email ({job.recruiter_email})</span>
+                  <Send className="w-3 h-3 mr-1" />
+                  Queue Recruiter Email
                 </Button>
-              ) : (
-                <span className="text-xs text-slate-500 self-center italic px-2">
-                  No public recruiter email found on posting
-                </span>
               )}
             </div>
 
-            {/* Document Preview Frame */}
             {previewHtml && (
-              <div className="mt-4 border border-slate-700 rounded-lg overflow-hidden bg-white text-black p-4 max-h-64 overflow-y-auto">
+              <div className="mt-3 border rounded p-3 bg-background max-h-48 overflow-y-auto font-sans leading-relaxed">
                 <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
               </div>
             )}
           </div>
 
-          {/* AI Match Details */}
+          {/* AI Match Reasons */}
           {matchReasons.length > 0 && (
-            <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2.5">
-                ATS Alignment Analysis
-              </h3>
-              <ul className="space-y-1.5">
+            <div className="border rounded-md p-3 space-y-1.5 bg-muted/10">
+              <div className="font-medium text-foreground">Alignment Summary</div>
+              <ul className="space-y-1 text-muted-foreground">
                 {matchReasons.map((reason, idx) => (
-                  <li key={idx} className="flex items-start space-x-2 text-xs text-slate-300">
-                    <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <li key={idx} className="flex items-start gap-1.5">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
                     <span>{reason}</span>
                   </li>
                 ))}
@@ -262,61 +234,54 @@ export default function JobModal({ job, onClose, onStatusChange }: JobModalProps
             </div>
           )}
 
-          {/* Full Job Description */}
-          <div>
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">
-              Full Job Description
-            </h3>
-            <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-300 whitespace-pre-line leading-relaxed font-sans max-h-80 overflow-y-auto">
-              {job.description || 'No detailed description provided by the employer source.'}
+          {/* Full JD */}
+          <div className="space-y-1.5">
+            <div className="font-medium text-foreground">Job Description</div>
+            <div className="border rounded-md p-3 bg-muted/10 text-muted-foreground whitespace-pre-line leading-relaxed max-h-64 overflow-y-auto">
+              {job.description ? job.description.replace(/<[^>]*>?/gm, '') : 'No description available'}
             </div>
           </div>
         </div>
 
-        <Separator className="bg-slate-800" />
+        <Separator />
 
-        {/* Footer Actions */}
-        <div className="p-4 bg-[#141e33] flex items-center justify-between gap-4">
-          <div className="flex items-center space-x-2">
-            <span className="text-xs text-slate-400 whitespace-nowrap">Status:</span>
+        {/* Footer */}
+        <div className="p-3 bg-muted/20 flex items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">Status:</span>
             <Select
               value={job.application_status || 'NEW'}
               onValueChange={(val) => onStatusChange(job.id, val)}
             >
-              <SelectTrigger className="w-44 h-8 bg-slate-800 border-slate-700 text-xs">
+              <SelectTrigger className="w-36 h-7 text-xs bg-background">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-900 border-slate-700">
+              <SelectContent>
                 <SelectItem value="DISCOVERED">Discovered</SelectItem>
                 <SelectItem value="MATCHED">Matched</SelectItem>
-                <SelectItem value="DOCUMENTS_READY">Documents Ready</SelectItem>
+                <SelectItem value="DOCUMENTS_READY">Docs Ready</SelectItem>
                 <SelectItem value="EMAIL_APPROVAL">Email Approval</SelectItem>
                 <SelectItem value="APPLIED">Applied</SelectItem>
-                <SelectItem value="INTERVIEW">Interviewing</SelectItem>
-                <SelectItem value="OFFER">Offer Received</SelectItem>
-                <SelectItem value="REJECTED">Archived / Rejected</SelectItem>
+                <SelectItem value="INTERVIEW">Interview</SelectItem>
+                <SelectItem value="OFFER">Offer</SelectItem>
+                <SelectItem value="REJECTED">Archived</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="text-slate-300 hover:text-white"
-            >
+          <div className="flex items-center gap-1.5">
+            <Button variant="ghost" size="sm" onClick={onClose} className="h-7 text-xs">
               Close
             </Button>
-            <Button asChild variant="gradient" size="sm" className="font-bold">
+            <Button asChild size="sm" className="h-7 text-xs">
               <a
                 href={job.application_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center space-x-1.5"
+                className="flex items-center gap-1"
               >
-                <span>Apply on Company Site</span>
-                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Apply Direct</span>
+                <ExternalLink className="w-3 h-3" />
               </a>
             </Button>
           </div>

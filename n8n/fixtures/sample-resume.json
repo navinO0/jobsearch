@@ -1,0 +1,39 @@
+{
+  "id": "res_master_001",
+  "candidateId": "user_default",
+  "name": "Alex Taylor",
+  "email": "alex.taylor@example.com",
+  "phone": "+1 (555) 234-5678",
+  "location": "San Francisco, CA (Open to Remote)",
+  "headline": "Senior Full Stack & Distributed Systems Engineer",
+  "summary": "Results-driven Software Engineer with 6+ years of experience designing high-throughput microservices in Node.js, TypeScript, and PostgreSQL.",
+  "skills": [
+    "Node.js",
+    "TypeScript",
+    "PostgreSQL",
+    "React",
+    "Docker",
+    "Redis",
+    "REST APIs",
+    "CI/CD"
+  ],
+  "experience": [
+    {
+      "company": "Acme Corp",
+      "role": "Senior Backend Engineer",
+      "startDate": "2021-03",
+      "endDate": "Present",
+      "bullets": [
+        "Architected real-time notification engine processing 5M+ daily events with 99.99% uptime.",
+        "Refactored PostgreSQL indexing and query execution plans reducing p99 latency by 45%."
+      ]
+    }
+  ],
+  "education": [
+    {
+      "institution": "State University",
+      "degree": "B.S. in Computer Science",
+      "year": "2018"
+    }
+  ]
+}

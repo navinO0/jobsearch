@@ -1,0 +1,56 @@
+{
+  "name": "WF-042-Email-Approval",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "email-approval",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Approval Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\nUPDATE jobs.email_outbox\nSET status = 'APPROVED', updated_at = NOW()\nWHERE id = $1\nRETURNING *;\n",
+        "additionalFields": {
+          "queryParams": "={{ [$json.body.outboxId] }}"
+        }
+      },
+      "id": "approve-outbox",
+      "name": "Approve Email in Outbox",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        440,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Approval Webhook": {
+      "main": [
+        [
+          {
+            "node": "Approve Email in Outbox",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "id": "wf-042-email-approval"
+}

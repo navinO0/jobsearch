@@ -1,0 +1,48 @@
+{
+  "name": "WF-062-Google-Calendar-Scheduler",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst input = $input.first()?.json || {};\nconst followUpDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days later\nreturn [{\n  json: {\n    eventTitle: `Application Follow-up: ${input.company || 'Company'}`,\n    eventDate: followUpDate.toISOString(),\n    description: 'Check status and send polite follow-up inquiry.'\n  }\n}];\n"
+      },
+      "id": "prep-calendar-event",
+      "name": "Prepare Follow-up Calendar Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Prepare Follow-up Calendar Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "id": "wf-062-google-calendar-scheduler"
+}

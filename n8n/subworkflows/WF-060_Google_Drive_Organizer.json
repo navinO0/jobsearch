@@ -1,0 +1,76 @@
+{
+  "name": "WF-060-Google-Drive-Organizer",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst input = $input.first()?.json || {};\nconst date = new Date();\nconst yyyy = date.getFullYear();\nconst mm = String(date.getMonth() + 1).padStart(2, '0');\nconst dd = String(date.getDate()).padStart(2, '0');\n\nconst company = (input.company || 'TechCompany').replace(/[^a-zA-Z0-9]/g, '_');\nconst role = (input.role || 'Engineer').replace(/[^a-zA-Z0-9]/g, '_');\nconst logicalPath = `Job Search Assistant/01_Job_Opening/${yyyy}/${mm}/${dd}/${company}/${role}`;\n\nreturn [{\n  json: {\n    ...input,\n    logicalPath,\n    fakeDriveFolderId: 'gdrive_folder_' + Buffer.from(logicalPath).toString('base64').substring(0, 16)\n  }\n}];\n"
+      },
+      "id": "resolve-path",
+      "name": "Compute Deterministic Drive Path",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\nINSERT INTO jobs.drive_folders (logical_path, drive_folder_id, updated_at)\nVALUES ($1, $2, NOW())\nON CONFLICT (logical_path) DO UPDATE SET updated_at = NOW()\nRETURNING *;\n",
+        "additionalFields": {
+          "queryParams": "={{ [$json.logicalPath, $json.fakeDriveFolderId] }}"
+        }
+      },
+      "id": "cache-folder",
+      "name": "Cache Folder ID in Postgres",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        680,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Compute Deterministic Drive Path",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Deterministic Drive Path": {
+      "main": [
+        [
+          {
+            "node": "Cache Folder ID in Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "id": "wf-060-google-drive-organizer"
+}

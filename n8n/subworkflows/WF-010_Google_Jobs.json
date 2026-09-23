@@ -1,0 +1,76 @@
+{
+  "name": "WF-010-Google-Jobs",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "subwf-trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://serpapi.com/search.json?engine=google_jobs&q={{ encodeURIComponent($json.query || 'Software Engineer') }}&api_key={{ $env.SERPAPI_KEY || '' }}",
+        "options": {
+          "timeout": 12000,
+          "followRedirects": true
+        }
+      },
+      "id": "http-fetch",
+      "name": "Fetch Source API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst items = $input.first()?.json?.jobs_results || [];\nreturn items.map((j, i) => ({\n  json: {\n    externalId: j.job_id || 'gjob_' + i,\n    sourceId: 'google_jobs',\n    sourceName: 'Google Jobs',\n    title: j.title || 'Software Engineer',\n    companyName: j.company_name || 'Tech Company',\n    location: j.location || 'Remote',\n    description: j.description || '',\n    applicationUrl: j.related_links?.[0]?.link || j.share_link || '',\n    postedAt: new Date().toISOString()\n  }\n}));\n"
+      },
+      "id": "transform-code",
+      "name": "Transform to Normalized Schema",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Source API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Source API": {
+      "main": [
+        [
+          {
+            "node": "Transform to Normalized Schema",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "id": "wf-010-google-jobs"
+}

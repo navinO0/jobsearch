@@ -1,0 +1,11 @@
+{
+  "callbackQueryId": "cb_9921",
+  "from": {
+    "id": "617149298",
+    "username": "candidate_alex"
+  },
+  "data": "job:101:resume",
+  "message": {
+    "messageId": 1042
+  }
+}

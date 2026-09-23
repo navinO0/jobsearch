@@ -1,0 +1,58 @@
+{
+  "name": "WF-071-Followup-Reminder",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 24
+            }
+          ]
+        }
+      },
+      "id": "daily-cron",
+      "name": "Daily Follow-up Cron",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\nSELECT id, job_id, status, applied_at, next_follow_up_at\nFROM jobs.applications\nWHERE status = 'APPLIED' AND next_follow_up_at <= NOW();\n"
+      },
+      "id": "check-due-followups",
+      "name": "Query Due Follow-ups",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        440,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Daily Follow-up Cron": {
+      "main": [
+        [
+          {
+            "node": "Query Due Follow-ups",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "id": "wf-071-followup-reminder"
+}

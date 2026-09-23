@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Globe2, CheckCircle2, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { CheckCircle2, AlertTriangle } from 'lucide-react';
 
 export default function SourcesPage() {
   const [sources, setSources] = useState<any[]>([]);
@@ -17,71 +17,67 @@ export default function SourcesPage() {
   }, []);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-      <div>
-        <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
-          Job Source Matrix & Circuit Breakers
-        </h1>
-        <p className="text-sm text-slate-400 mt-1">
-          26 official source adapters across ATS platforms, aggregators, remote boards, and Indian portals.
+    <div className="max-w-5xl mx-auto space-y-6">
+      <div className="border-b pb-4">
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">Source Registry</h1>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          26 official adapters spanning ATS endpoints, aggregators, remote feeds, and manual ingestion modes.
         </p>
       </div>
 
-      <Card className="bg-slate-900/60 border-slate-800">
-        <CardHeader>
-          <CardTitle className="text-base flex items-center justify-between">
-            <span>Configured Job Sources</span>
-            <Badge variant="outline" className="text-xs border-slate-700">
-              {sources.length} sources
-            </Badge>
-          </CardTitle>
+      <Card>
+        <CardHeader className="p-4 pb-2 border-b flex flex-row items-center justify-between">
+          <CardTitle className="text-sm font-medium">Configured Connectors</CardTitle>
+          <Badge variant="outline" className="text-[10px] font-mono">
+            {sources.length} sources
+          </Badge>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {loading ? (
-            <div className="text-xs text-slate-500 py-4">Loading source matrix...</div>
+            <div className="text-xs text-muted-foreground p-6 text-center">Loading sources...</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-950/80 text-slate-400 border-b border-slate-800">
+                <thead className="bg-muted/40 text-muted-foreground border-b">
                   <tr>
-                    <th className="p-3">Source Name</th>
-                    <th className="p-3">Category</th>
-                    <th className="p-3">Method</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3">Refresh Policy</th>
-                    <th className="p-3">Jobs Ingested</th>
-                    <th className="p-3">Compliance & Access Note</th>
+                    <th className="p-3 font-medium">Source</th>
+                    <th className="p-3 font-medium">Category</th>
+                    <th className="p-3 font-medium">Integration</th>
+                    <th className="p-3 font-medium">Status</th>
+                    <th className="p-3 font-medium">Refresh</th>
+                    <th className="p-3 font-medium">Jobs Ingested</th>
+                    <th className="p-3 font-medium">Compliance Policy</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
+                <tbody className="divide-y divide-border">
                   {sources.map((s) => (
-                    <tr key={s.id} className="hover:bg-slate-800/30">
-                      <td className="p-3 font-semibold text-slate-200">{s.name}</td>
+                    <tr key={s.id} className="hover:bg-muted/20">
+                      <td className="p-3 font-medium text-foreground">{s.name}</td>
                       <td className="p-3">
-                        <Badge variant="secondary" className="text-[10px]">
+                        <Badge variant="secondary" className="text-[10px] font-normal">
                           {s.category}
                         </Badge>
                       </td>
-                      <td className="p-3 text-slate-400">{s.integrationMethod}</td>
+                      <td className="p-3 text-muted-foreground font-mono text-[11px]">{s.integrationMethod}</td>
                       <td className="p-3">
-                        <span className="flex items-center space-x-1">
+                        <span className="inline-flex items-center gap-1 text-[11px]">
                           {s.enabled ? (
                             <>
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                              <span className="text-emerald-400 font-medium">Enabled</span>
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                              <span className="text-emerald-500">Active</span>
                             </>
                           ) : (
                             <>
-                              <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                              <span className="text-amber-400 font-medium">Disabled</span>
+                              <AlertTriangle className="w-3.5 h-3.5 text-muted-foreground" />
+                              <span className="text-muted-foreground">Disabled</span>
                             </>
                           )}
                         </span>
                       </td>
-                      <td className="p-3 text-slate-400">{s.refreshPolicy}</td>
-                      <td className="p-3 font-semibold text-slate-300">{s.jobsFoundTotal || 0}</td>
-                      <td className="p-3 text-slate-500 text-[11px] max-w-sm">
-                        {s.complianceNote || 'Direct API/feed integration active.'}
+                      <td className="p-3 text-muted-foreground">{s.refreshPolicy}</td>
+                      <td className="p-3 font-mono text-muted-foreground">{s.jobsFoundTotal || 0}</td>
+                      <td className="p-3 text-muted-foreground text-[11px] max-w-xs truncate">
+                        {s.complianceNote || 'Direct API/feed active.'}
                       </td>
                     </tr>
                   ))}

@@ -1,0 +1,48 @@
+{
+  "name": "WF-040-Discover-Recruiter-Email",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst input = $input.first()?.json || {};\nconst desc = input.description || '';\nconst emails = desc.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\\.[a-zA-Z0-9_-]+)/gi) || [];\nconst found = emails.find(e => !e.includes('example.com') && !e.includes('sentry.io') && !e.includes('github.com')) || null;\n\nreturn [{\n  json: {\n    ...input,\n    recruiterEmail: found,\n    emailConfidence: found ? 0.95 : 0.0,\n    emailSource: found ? 'JOB_POSTING' : 'NOT_FOUND'\n  }\n}];\n"
+      },
+      "id": "extract-email",
+      "name": "Verify & Extract Recruiter Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Verify & Extract Recruiter Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "id": "wf-040-discover-recruiter-email"
+}

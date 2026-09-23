@@ -1,0 +1,83 @@
+{
+  "name": "WF-043-Email-Queue",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "cron",
+      "name": "Queue Inspection Cron (15m)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\nSELECT * FROM jobs.email_outbox\nWHERE status = 'APPROVED'\n   OR (status = 'SCHEDULED' AND scheduled_send_time <= NOW())\nORDER BY created_at ASC\nLIMIT 5;\n"
+      },
+      "id": "fetch-ready-emails",
+      "name": "Fetch Ready Emails",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "wf-044-scheduled-email-sender",
+        "options": {}
+      },
+      "id": "dispatch-sender",
+      "name": "Dispatch to Sender WF-044",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Queue Inspection Cron (15m)": {
+      "main": [
+        [
+          {
+            "node": "Fetch Ready Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Ready Emails": {
+      "main": [
+        [
+          {
+            "node": "Dispatch to Sender WF-044",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "id": "wf-043-email-queue"
+}

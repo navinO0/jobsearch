@@ -1,0 +1,52 @@
+{
+  "name": "WF-070-Application-Status-Tracker",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\nUPDATE jobs.applications\nSET status = $1, updated_at = NOW()\nWHERE id = $2\nRETURNING *;\n",
+        "additionalFields": {
+          "queryParams": "={{ [$json.newStatus, $json.applicationId] }}"
+        }
+      },
+      "id": "advance-status",
+      "name": "Advance Application State Machine",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        440,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Advance Application State Machine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "id": "wf-070-application-status-tracker"
+}

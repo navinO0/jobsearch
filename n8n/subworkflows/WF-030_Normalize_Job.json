@@ -1,0 +1,48 @@
+{
+  "name": "WF-030-Normalize-Job",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nreturn $input.all().map(item => {\n  const j = item.json;\n  const title = (j.title || 'Software Engineer').trim();\n  const company = (j.companyName || 'Company').trim();\n  const location = (j.location || 'Remote').trim();\n  const normTitle = title.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\\s+/g, ' ').trim();\n  const desc = j.description || '';\n  \n  // Extract technical skills heuristically\n  const techKeywords = ['typescript', 'javascript', 'node.js', 'react', 'next.js', 'python', 'postgresql', 'docker', 'kubernetes', 'aws', 'redis', 'graphql'];\n  const foundSkills = techKeywords.filter(k => desc.toLowerCase().includes(k)).map(s => s.toUpperCase());\n\n  // Email discovery from description\n  const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\\.[a-zA-Z0-9_-]+)/gi;\n  const emails = desc.match(emailRegex) || [];\n  const recruiterEmail = emails.find(e => !e.includes('example.com') && !e.includes('sentry.io')) || null;\n\n  return {\n    json: {\n      externalId: String(j.externalId || 'ext_' + Math.random().toString(36).substring(7)),\n      sourceId: j.sourceId || 'custom',\n      sourceName: j.sourceName || 'Custom Source',\n      title,\n      normalizedTitle: normTitle,\n      companyName: company,\n      location,\n      country: j.country || 'Global',\n      city: j.city || '',\n      remoteType: (j.remoteType || (location.toLowerCase().includes('remote') ? 'REMOTE' : 'HYBRID')),\n      employmentType: j.employmentType || 'Full-time',\n      salaryMin: parseFloat(j.salaryMin) || 0,\n      salaryMax: parseFloat(j.salaryMax) || 0,\n      salaryCurrency: j.salaryCurrency || 'USD',\n      description: desc,\n      skills: foundSkills,\n      applicationUrl: j.applicationUrl || '',\n      recruiterEmail,\n      emailConfidence: recruiterEmail ? 0.90 : null,\n      postedAt: j.postedAt || new Date().toISOString()\n    }\n  };\n});\n"
+      },
+      "id": "normalize-code",
+      "name": "Map to Canonical NormalizedJob",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Map to Canonical NormalizedJob",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "id": "wf-030-normalize-job"
+}

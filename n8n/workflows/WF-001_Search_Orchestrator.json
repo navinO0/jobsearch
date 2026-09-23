@@ -11,7 +11,10 @@
       "name": "Webhook Trigger",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 300]
+      "position": [
+        180,
+        240
+      ]
     },
     {
       "parameters": {
@@ -24,38 +27,177 @@
           ]
         }
       },
-      "id": "hourly-schedule",
+      "id": "hourly-trigger",
       "name": "Hourly Schedule Trigger",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [240, 480]
+      "position": [
+        180,
+        420
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        180,
+        600
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const runId = 'run_' + Date.now();\nconst payload = $input.first()?.json?.body || $input.first()?.json || {};\nreturn [{\n  json: {\n    run_id: runId,\n    profile_id: payload.profileId || 'default',\n    sources: payload.sources || ['arbeitnow', 'jobicy', 'greenhouse', 'ashby', 'lever'],\n    batch_size: payload.batchSize || 15,\n    timestamp: new Date().toISOString()\n  }\n}];"
+        "jsCode": "\nconst payload = $input.first()?.json?.body || $input.first()?.json || {};\nconst runId = 'run_' + Date.now();\nconst profileId = payload.profileId || 'profile_default';\nconst sources = payload.sources || ['all'];\nconst batchSize = payload.batchSize || 15;\nreturn [{\n  json: {\n    run_id: runId,\n    profile_id: profileId,\n    sources: sources,\n    batch_size: batchSize,\n    started_at: new Date().toISOString()\n  }\n}];\n"
       },
       "id": "init-run",
-      "name": "Initialize Search Run",
+      "name": "Initialize Run & Parameters",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [480, 390]
+      "position": [
+        420,
+        420
+      ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO jobs.job_runs (run_id, started_at, status, sources_attempted, metadata) VALUES ('{{ $json.run_id }}', NOW(), 'running', 5, '{{ JSON.stringify($json) }}') ON CONFLICT DO NOTHING;"
+        "query": "\nINSERT INTO jobs.job_runs (run_id, started_at, status, sources_attempted, metadata)\nVALUES ($1, NOW(), 'RUNNING', 1, $2::jsonb)\nRETURNING *;\n",
+        "additionalFields": {
+          "queryParams": "={{ [$json.run_id, JSON.stringify($json)] }}"
+        }
       },
-      "id": "log-run-pg",
-      "name": "Record Search Run in DB",
+      "id": "log-run-start",
+      "name": "Log Run Start in Postgres",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [700, 390],
-      "credentials": {
-        "postgres": {
-          "id": "e2U3a1R2x",
-          "name": "PostgreSQL Account"
+      "position": [
+        660,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "wf-005-job-source-router",
+        "options": {}
+      },
+      "id": "call-source-router",
+      "name": "Execute WF-005 Source Router",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        900,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "wf-030-normalize-job",
+        "options": {}
+      },
+      "id": "call-normalizer",
+      "name": "Execute WF-030 Normalize",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        1140,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "wf-031-deduplicate-job",
+        "options": {}
+      },
+      "id": "call-deduplicator",
+      "name": "Execute WF-031 Deduplicate",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        1380,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "wf-032-filter-job",
+        "options": {}
+      },
+      "id": "call-filter",
+      "name": "Execute WF-032 Filter",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        1620,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "wf-033-match-resume",
+        "options": {}
+      },
+      "id": "call-matcher",
+      "name": "Execute WF-033 Match Resume",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        1860,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.matchScore }}",
+              "operation": "largerEqual",
+              "value2": 70
+            }
+          ]
         }
-      }
+      },
+      "id": "is-high-match",
+      "name": "Score >= 70%?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2100,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "wf-050-telegram-job-notification",
+        "options": {}
+      },
+      "id": "call-telegram-alert",
+      "name": "Execute WF-050 Telegram Notification",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        2340,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\nUPDATE jobs.job_runs\nSET completed_at = NOW(),\n    status = 'COMPLETED',\n    jobs_normalized = (SELECT count(*) FROM jobs.jobs WHERE run_id = $1)\nWHERE run_id = $1;\n",
+        "additionalFields": {
+          "queryParams": "={{ [$json.run_id] }}"
+        }
+      },
+      "id": "finalize-run",
+      "name": "Finalize Run in Postgres",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2580,
+        420
+      ]
     }
   ],
   "connections": {
@@ -63,7 +205,7 @@
       "main": [
         [
           {
-            "node": "Initialize Search Run",
+            "node": "Initialize Run & Parameters",
             "type": "main",
             "index": 0
           }
@@ -74,18 +216,124 @@
       "main": [
         [
           {
-            "node": "Initialize Search Run",
+            "node": "Initialize Run & Parameters",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Initialize Search Run": {
+    "Manual Trigger": {
       "main": [
         [
           {
-            "node": "Record Search Run in DB",
+            "node": "Initialize Run & Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initialize Run & Parameters": {
+      "main": [
+        [
+          {
+            "node": "Log Run Start in Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Run Start in Postgres": {
+      "main": [
+        [
+          {
+            "node": "Execute WF-005 Source Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute WF-005 Source Router": {
+      "main": [
+        [
+          {
+            "node": "Execute WF-030 Normalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute WF-030 Normalize": {
+      "main": [
+        [
+          {
+            "node": "Execute WF-031 Deduplicate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute WF-031 Deduplicate": {
+      "main": [
+        [
+          {
+            "node": "Execute WF-032 Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute WF-032 Filter": {
+      "main": [
+        [
+          {
+            "node": "Execute WF-033 Match Resume",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute WF-033 Match Resume": {
+      "main": [
+        [
+          {
+            "node": "Score >= 70%?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score >= 70%?": {
+      "main": [
+        [
+          {
+            "node": "Execute WF-050 Telegram Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Finalize Run in Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute WF-050 Telegram Notification": {
+      "main": [
+        [
+          {
+            "node": "Finalize Run in Postgres",
             "type": "main",
             "index": 0
           }
@@ -93,7 +341,10 @@
       ]
     }
   },
+  "active": false,
   "settings": {
     "executionOrder": "v1"
-  }
+  },
+  "versionId": "1.0.0",
+  "id": "wf-001-search-orchestrator"
 }

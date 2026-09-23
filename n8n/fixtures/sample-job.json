@@ -1,0 +1,50 @@
+{
+  "id": 101,
+  "externalId": "gh-89231",
+  "sourceId": "greenhouse",
+  "sourceName": "Greenhouse",
+  "title": "Senior Backend Engineer",
+  "normalizedTitle": "senior backend engineer",
+  "companyName": "Stripe",
+  "companyDomain": "stripe.com",
+  "location": "Remote - US / India",
+  "country": "United States",
+  "city": "San Francisco",
+  "remoteType": "REMOTE",
+  "employmentType": "Full-time",
+  "seniority": "SENIOR",
+  "salaryMin": 140000,
+  "salaryMax": 180000,
+  "salaryCurrency": "USD",
+  "salaryPeriod": "YEAR",
+  "description": "We are seeking a Senior Backend Engineer proficient in Node.js, TypeScript, PostgreSQL, and distributed message queues.",
+  "skills": [
+    "Node.js",
+    "TypeScript",
+    "PostgreSQL",
+    "Docker",
+    "Redis",
+    "Distributed Systems"
+  ],
+  "requiredSkills": [
+    "Node.js",
+    "TypeScript",
+    "PostgreSQL"
+  ],
+  "preferredSkills": [
+    "Redis",
+    "Kubernetes",
+    "AWS"
+  ],
+  "yearsRequired": 5,
+  "visaSponsorship": true,
+  "relocationSupport": false,
+  "postedAt": "2026-09-23T08:09:40.496Z",
+  "applicationUrl": "https://boards.greenhouse.io/stripe/jobs/89231",
+  "sourceUrl": "https://boards.greenhouse.io/stripe/jobs/89231",
+  "recruiterName": "Sarah Jenkins",
+  "recruiterEmail": "recruiting@stripe.com",
+  "emailConfidence": 0.95,
+  "fingerprint": "stripe:senior-backend-engineer:remote",
+  "status": "DISCOVERED"
+}

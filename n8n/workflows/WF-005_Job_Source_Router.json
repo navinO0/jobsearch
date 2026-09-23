@@ -1,0 +1,190 @@
+{
+  "name": "WF-005-Job-Source-Router",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "subwf-trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\nSELECT source_id, is_enabled, is_rate_limited\nFROM jobs.source_health\nWHERE is_enabled = true;\n"
+      },
+      "id": "check-source-health",
+      "name": "Check Source Health Registry",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "wf-010-google-jobs",
+        "options": {}
+      },
+      "id": "call-google-jobs",
+      "name": "Adapter: Google Jobs",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        700,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "wf-011-adzuna",
+        "options": {}
+      },
+      "id": "call-adzuna",
+      "name": "Adapter: Adzuna",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        700,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "wf-013-greenhouse",
+        "options": {}
+      },
+      "id": "call-greenhouse",
+      "name": "Adapter: Greenhouse",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        700,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "wf-022-additional-source-adapters",
+        "options": {}
+      },
+      "id": "call-additional-adapters",
+      "name": "Adapter: Additional Feeds",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        700,
+        580
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "mergeByPosition",
+        "options": {}
+      },
+      "id": "merge-source-results",
+      "name": "Merge All Sources",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        960,
+        360
+      ]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check Source Health Registry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Source Health Registry": {
+      "main": [
+        [
+          {
+            "node": "Adapter: Google Jobs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Adapter: Adzuna",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Adapter: Greenhouse",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Adapter: Additional Feeds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adapter: Google Jobs": {
+      "main": [
+        [
+          {
+            "node": "Merge All Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adapter: Adzuna": {
+      "main": [
+        [
+          {
+            "node": "Merge All Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adapter: Greenhouse": {
+      "main": [
+        [
+          {
+            "node": "Merge All Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adapter: Additional Feeds": {
+      "main": [
+        [
+          {
+            "node": "Merge All Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "id": "wf-005-job-source-router"
+}

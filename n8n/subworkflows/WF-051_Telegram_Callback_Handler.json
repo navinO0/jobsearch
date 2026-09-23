@@ -1,0 +1,80 @@
+{
+  "name": "WF-051-Telegram-Callback-Handler",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "telegram-callback",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Telegram Callback Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst body = $input.first()?.json?.body || {};\nconst callbackQuery = body.callback_query || {};\nconst data = callbackQuery.data || '';\nconst [prefix, jobId, action] = data.split(':');\n\nreturn [{\n  json: {\n    callbackId: callbackQuery.id,\n    userId: callbackQuery.from?.id,\n    jobId: parseInt(jobId, 10),\n    action: action || 'view',\n    valid: prefix === 'job'\n  }\n}];\n"
+      },
+      "id": "parse-callback",
+      "name": "Parse Opaque Callback Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\nINSERT INTO jobs.telegram_callbacks (id, callback_id, chat_id, action, job_id, processed)\nVALUES ('cb_' || NOW()::numeric, $1, $2, $3, $4, true);\n",
+        "additionalFields": {
+          "queryParams": "={{ [$json.callbackId, String($json.userId), $json.action, $json.jobId] }}"
+        }
+      },
+      "id": "log-callback",
+      "name": "Log Callback in Postgres",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        680,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Telegram Callback Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Opaque Callback Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Opaque Callback Data": {
+      "main": [
+        [
+          {
+            "node": "Log Callback in Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "id": "wf-051-telegram-callback-handler"
+}

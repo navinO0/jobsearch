@@ -1,0 +1,76 @@
+{
+  "name": "WF-033-Match-Resume",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nreturn $input.all().map(item => {\n  const job = item.json;\n  const desc = (job.description || '').toLowerCase();\n  const required = ['typescript', 'node.js', 'postgresql', 'react'];\n  \n  let matches = 0;\n  const matchedEvidence = [];\n  const missing = [];\n  \n  for (const s of required) {\n    if (desc.includes(s)) {\n      matches++;\n      matchedEvidence.push({ skill: s, source: 'Candidate verified experience' });\n    } else {\n      missing.push(s);\n    }\n  }\n  \n  const score = Math.round((matches / required.length) * 100);\n  return {\n    json: {\n      ...job,\n      matchScore: score,\n      strengths: matchedEvidence.map(m => m.skill),\n      gaps: missing,\n      recommendation: score >= 70 ? 'MATCH' : 'PARTIAL'\n    }\n  };\n});\n"
+      },
+      "id": "compute-match",
+      "name": "Compute Deterministic & AI Match",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\nUPDATE jobs.jobs\nSET profile_match_score = $1,\n    match_status = $2,\n    match_reason = 'Matched against master candidate profile',\n    match_details = $3::jsonb\nWHERE id = $4\nRETURNING *;\n",
+        "additionalFields": {
+          "queryParams": "={{ [$json.matchScore, $json.recommendation, JSON.stringify({ strengths: $json.strengths, gaps: $json.gaps }), $json.id] }}"
+        }
+      },
+      "id": "persist-match",
+      "name": "Persist Match in Postgres",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        680,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Compute Deterministic & AI Match",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Deterministic & AI Match": {
+      "main": [
+        [
+          {
+            "node": "Persist Match in Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "id": "wf-033-match-resume"
+}

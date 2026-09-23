@@ -1,0 +1,14 @@
+{
+  "filename": "job-search-batch-q3.csv",
+  "rowCount": 5,
+  "profiles": [
+    "Senior Backend",
+    "DevOps Engineer"
+  ],
+  "sources": [
+    "adzuna",
+    "jooble",
+    "greenhouse",
+    "ashby"
+  ]
+}

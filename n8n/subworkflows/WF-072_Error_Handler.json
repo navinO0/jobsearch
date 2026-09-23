@@ -1,0 +1,76 @@
+{
+  "name": "WF-072-Error-Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "error-trigger",
+      "name": "Workflow Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst err = $input.first()?.json?.execution?.error || {};\nreturn [{\n  json: {\n    workflowName: $input.first()?.json?.workflow?.name || 'Unknown Workflow',\n    executionId: $input.first()?.json?.execution?.id || 'exec_unknown',\n    nodeName: err.node?.name || 'Unknown Node',\n    errorType: err.name || 'WorkflowExecutionError',\n    message: err.message || 'Execution error encountered'\n  }\n}];\n"
+      },
+      "id": "sanitize-error",
+      "name": "Extract & Sanitize Error Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\nINSERT INTO jobs.error_events (workflow_name, execution_id, node_name, error_type, message, created_at)\nVALUES ($1, $2, $3, $4, $5, NOW());\n",
+        "additionalFields": {
+          "queryParams": "={{ [$json.workflowName, $json.executionId, $json.nodeName, $json.errorType, $json.message] }}"
+        }
+      },
+      "id": "log-error-db",
+      "name": "Persist Error to DLQ in Postgres",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        680,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Workflow Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract & Sanitize Error Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract & Sanitize Error Context": {
+      "main": [
+        [
+          {
+            "node": "Persist Error to DLQ in Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "id": "wf-072-error-handler"
+}
