@@ -33,26 +33,11 @@ export async function GET(
     );
     const resumeVersion = resumeRes.rows[0] || null;
 
-    // Fetch email outbox status
-    const emailRes = await pool.query(
-      'SELECT * FROM jobs.email_outbox WHERE job_id = $1 ORDER BY created_at DESC LIMIT 1',
-      [jobId]
-    );
-    const emailOutbox = emailRes.rows[0] || null;
-
-    // Fetch master candidate profile for comparison
-    const masterCandRes = await pool.query(
-      'SELECT * FROM jobs.candidate_profiles ORDER BY updated_at DESC LIMIT 1'
-    );
-    const masterCandidate = masterCandRes.rows[0] || null;
-
     return NextResponse.json({
       success: true,
       job,
       application,
       resumeVersion,
-      emailOutbox,
-      masterCandidate,
     });
   } catch (error: any) {
     console.error('Error fetching job details:', error);
@@ -71,7 +56,7 @@ export async function PATCH(
     const { id } = await params;
     const jobId = parseInt(id, 10);
     const body = await request.json();
-    const { application_status, notes, recruiter_email } = body;
+    const { application_status, remarks, notes, recruiter_email, interview_date } = body;
 
     const updates: string[] = ['updated_at = NOW()'];
     const values: any[] = [];
@@ -83,8 +68,21 @@ export async function PATCH(
       pIdx++;
 
       if (application_status === 'APPLIED') {
-        updates.push(`application_submitted_at = NOW()`);
+        updates.push(`applied_at = COALESCE(applied_at, NOW())`);
       }
+    }
+
+    const finalRemarks = remarks !== undefined ? remarks : notes;
+    if (finalRemarks !== undefined) {
+      updates.push(`remarks = $${pIdx}`);
+      values.push(finalRemarks);
+      pIdx++;
+    }
+
+    if (interview_date !== undefined) {
+      updates.push(`interview_date = $${pIdx}`);
+      values.push(interview_date ? new Date(interview_date) : null);
+      pIdx++;
     }
 
     if (recruiter_email !== undefined) {
@@ -106,14 +104,6 @@ export async function PATCH(
       return NextResponse.json(
         { success: false, error: 'Job not found' },
         { status: 404 }
-      );
-    }
-
-    // Also update applications table if notes are provided
-    if (notes) {
-      await pool.query(
-        `UPDATE jobs.applications SET notes = $1, updated_at = NOW() WHERE job_id = $2`,
-        [notes, jobId]
       );
     }
 

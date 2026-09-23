@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
     const remoteType = searchParams.get('remote_type') || '';
     const source = searchParams.get('source') || '';
     const appStatus = searchParams.get('status') || '';
+    const deduplicate = searchParams.get('deduplicate') !== 'false'; // default true
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '30', 10);
     const offset = (page - 1) * limit;
@@ -65,6 +66,7 @@ export async function GET(request: NextRequest) {
         salary_min, salary_max, salary_currency, posted_at, application_url, canonical_url,
         skills, technologies, profile_match_score, match_reason, match_status,
         match_details, telegram_sent, telegram_sent_at, application_status,
+        remarks, applied_at, interview_date, recruiter_email,
         first_seen_at, last_seen_at
       FROM jobs 
       WHERE ${whereClause}
@@ -81,7 +83,10 @@ export async function GET(request: NextRequest) {
       SELECT 
         count(*) as total_jobs,
         count(CASE WHEN profile_match_score >= 75 THEN 1 END) as high_matches,
+        count(CASE WHEN application_status = 'WISHLIST' THEN 1 END) as wishlist_count,
+        count(CASE WHEN application_status = 'SAVED' THEN 1 END) as saved_count,
         count(CASE WHEN application_status = 'APPLIED' THEN 1 END) as applied_count,
+        count(CASE WHEN application_status IN ('INTERVIEW_ATTENDED', 'INTERVIEWING') THEN 1 END) as interview_count,
         count(DISTINCT source) as active_sources
       FROM jobs;
     `;
@@ -92,22 +97,25 @@ export async function GET(request: NextRequest) {
       success: true,
       data: jobsRes.rows,
       pagination: {
-        total,
         page,
         limit,
+        total,
         totalPages: Math.ceil(total / limit),
       },
       stats: {
         totalJobs: parseInt(stats.total_jobs || '0', 10),
         highMatches: parseInt(stats.high_matches || '0', 10),
+        wishlistCount: parseInt(stats.wishlist_count || '0', 10),
+        savedCount: parseInt(stats.saved_count || '0', 10),
         appliedCount: parseInt(stats.applied_count || '0', 10),
+        interviewCount: parseInt(stats.interview_count || '0', 10),
         activeSources: parseInt(stats.active_sources || '0', 10),
       },
     });
   } catch (error: any) {
-    console.error('Error fetching jobs:', error);
+    console.error('Error fetching jobs feed:', error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Internal server error' },
+      { success: false, error: error.message || 'Failed to fetch jobs' },
       { status: 500 }
     );
   }
