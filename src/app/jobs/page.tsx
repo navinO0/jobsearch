@@ -143,6 +143,9 @@ export default function JobsPage() {
     setJobs((prev) =>
       prev.map((j) => (j.id === jobId ? { ...j, application_status: newStatus } : j))
     );
+    if (fullDescJob && fullDescJob.id === jobId) {
+      setFullDescJob((prev) => (prev ? { ...prev, application_status: newStatus } : null));
+    }
 
     try {
       const res = await fetch(`/api/jobs/${jobId}`, {
@@ -190,6 +193,13 @@ export default function JobsPage() {
               : j
           )
         );
+        if (fullDescJob && fullDescJob.id === editingJob.id) {
+          setFullDescJob((prev) =>
+            prev
+              ? { ...prev, remarks: remarkText, interview_date: interviewDate || null }
+              : null
+          );
+        }
         setEditingJob(null);
       }
     } catch (e) {
@@ -477,7 +487,8 @@ export default function JobsPage() {
               return (
                 <Card
                   key={job.id}
-                  className="bg-slate-900 border-slate-800/80 hover:border-slate-700 transition-all rounded-xl overflow-hidden flex flex-col justify-between shadow-sm"
+                  onClick={() => setFullDescJob(job)}
+                  className="group bg-slate-900 border-slate-800/80 hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/5 transition-all rounded-xl overflow-hidden flex flex-col justify-between shadow-sm cursor-pointer"
                 >
                   <CardContent className="p-4 space-y-3 flex-1 flex flex-col">
                     {/* Top Row: Company & Match Badge */}
@@ -487,7 +498,7 @@ export default function JobsPage() {
                           <Building2 className="h-3.5 w-3.5 shrink-0" />
                           {job.company_name}
                         </span>
-                        <h2 className="text-sm font-bold text-white leading-tight truncate mt-0.5">
+                        <h2 className="text-sm font-bold text-white group-hover:text-indigo-200 transition-colors leading-tight truncate mt-0.5">
                           {job.job_title}
                         </h2>
                       </div>
@@ -527,30 +538,26 @@ export default function JobsPage() {
 
                     {/* Match Reason Callout */}
                     {job.match_reason && (
-                      <div className="text-[11px] bg-slate-950/80 border border-slate-800/80 rounded-lg p-2 text-slate-300 leading-snug">
+                      <div className="text-[11px] bg-slate-950/80 border border-slate-800/80 rounded-lg p-2 text-slate-300 leading-snug line-clamp-2">
                         <strong className="text-indigo-300">Why matched: </strong>
                         {job.match_reason}
                       </div>
                     )}
 
-                    {/* FULL RAW JOB DESCRIPTION (Not truncated, un-modified) */}
+                    {/* Truncated Job Description */}
                     <div className="flex-1 space-y-1">
                       <div className="flex items-center justify-between text-[11px] text-slate-400">
-                        <span className="font-semibold text-slate-300 flex items-center gap-1">
+                        <span className="font-semibold text-slate-400 flex items-center gap-1">
                           <FileText className="h-3 w-3 text-slate-500" />
-                          Raw Job Description
+                          Job Description
                         </span>
-                        <button
-                          onClick={() => setFullDescJob(job)}
-                          className="text-[10px] text-indigo-400 hover:text-indigo-300 flex items-center gap-0.5 hover:underline"
-                        >
-                          <Maximize2 className="h-2.5 w-2.5" />
-                          Expand
-                        </button>
+                        <span className="text-[10px] text-indigo-400 group-hover:underline flex items-center gap-0.5 font-medium">
+                          View details &rarr;
+                        </span>
                       </div>
-                      <div className="max-h-48 overflow-y-auto whitespace-pre-wrap text-[11px] text-slate-300 font-sans bg-slate-950 border border-slate-800/80 p-2.5 rounded-lg leading-relaxed select-text scrollbar-thin">
-                        {job.description || 'No raw description text provided by source.'}
-                      </div>
+                      <p className="line-clamp-3 text-xs text-slate-300 font-sans bg-slate-950/60 border border-slate-800/60 p-2.5 rounded-lg leading-relaxed select-none">
+                        {job.description || 'No description provided.'}
+                      </p>
                     </div>
 
                     {/* User Remarks Callout if present */}
@@ -572,7 +579,10 @@ export default function JobsPage() {
                     )}
 
                     {/* Bottom Action Controls */}
-                    <div className="pt-2 border-t border-slate-800/80 space-y-2 mt-auto">
+                    <div
+                      className="pt-2 border-t border-slate-800/80 space-y-2 mt-auto"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <div className="flex items-center gap-2">
                         <Select
                           value={job.application_status || 'NEW'}
@@ -622,39 +632,142 @@ export default function JobsPage() {
         )}
       </section>
 
-      {/* FULL DESCRIPTION MODAL */}
+      {/* JOB DETAILS MODAL */}
       {fullDescJob && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 w-full max-w-2xl max-h-[85vh] flex flex-col space-y-3 shadow-2xl text-slate-100">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={() => setFullDescJob(null)}
+        >
+          <div
+            className="bg-slate-900 border border-slate-800 rounded-xl p-5 sm:p-6 w-full max-w-3xl max-h-[90vh] flex flex-col space-y-4 shadow-2xl text-slate-100"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
             <div className="flex items-start justify-between border-b border-slate-800 pb-3">
-              <div>
-                <h3 className="text-base font-bold text-white">{fullDescJob.job_title}</h3>
-                <p className="text-xs text-indigo-400 font-medium">
-                  {fullDescJob.company_name} • {fullDescJob.location || 'Remote'}
-                </p>
+              <div className="min-w-0 pr-3">
+                <span className="text-xs font-semibold text-indigo-400 flex items-center gap-1">
+                  <Building2 className="h-3.5 w-3.5 shrink-0" />
+                  {fullDescJob.company_name}
+                </span>
+                <h3 className="text-base sm:text-lg font-bold text-white leading-tight mt-1">
+                  {fullDescJob.job_title}
+                </h3>
+                <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-slate-400">
+                  <span className="flex items-center gap-1 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                    <MapPin className="h-3 w-3 text-slate-500" />
+                    {fullDescJob.location || 'Remote'}
+                  </span>
+                  <Badge variant="secondary" className="bg-slate-950 border border-slate-800 text-xs py-0.5 px-2 text-slate-300">
+                    {fullDescJob.remote_type || 'REMOTE'}
+                  </Badge>
+                  <Badge variant="outline" className="border-slate-800 text-xs py-0.5 px-2 text-slate-400">
+                    Source: {fullDescJob.source}
+                  </Badge>
+                  {fullDescJob.posted_at && (
+                    <span className="text-[11px] text-slate-500">
+                      Posted: {new Date(fullDescJob.posted_at).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
               </div>
-              <button
-                onClick={() => setFullDescJob(null)}
-                className="text-slate-400 hover:text-white p-1"
-              >
-                <X className="h-5 w-5" />
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                <div
+                  className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-bold border ${
+                    (fullDescJob.profile_match_score || 0) >= 75
+                      ? 'bg-emerald-950/60 text-emerald-300 border-emerald-800'
+                      : (fullDescJob.profile_match_score || 0) >= 55
+                      ? 'bg-indigo-950/60 text-indigo-300 border-indigo-800'
+                      : 'bg-slate-800 text-slate-400 border-slate-700'
+                  }`}
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <span>{fullDescJob.profile_match_score || 0}% Match</span>
+                </div>
+                <button
+                  onClick={() => setFullDescJob(null)}
+                  className="text-slate-400 hover:text-white p-1 rounded-md hover:bg-slate-800 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-3 bg-slate-950 border border-slate-800/80 rounded-lg text-xs leading-relaxed whitespace-pre-wrap select-text font-sans text-slate-200">
-              {fullDescJob.description}
+            {/* Why Matched / Reasons */}
+            {fullDescJob.match_reason && (
+              <div className="text-xs bg-indigo-950/30 border border-indigo-800/40 rounded-lg p-3 text-slate-200">
+                <strong className="text-indigo-300">Why Matched: </strong>
+                {fullDescJob.match_reason}
+              </div>
+            )}
+
+            {/* Remarks / Interview if present */}
+            {fullDescJob.remarks && (
+              <div className="text-xs bg-amber-950/20 border border-amber-800/40 rounded-lg p-3 text-amber-200">
+                <div className="flex items-start gap-2">
+                  <MessageSquare className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <strong className="text-amber-300">My Notes: </strong>
+                    <span>{fullDescJob.remarks}</span>
+                    {fullDescJob.interview_date && (
+                      <p className="text-[11px] text-amber-300 mt-1">
+                        📅 Scheduled Interview: {new Date(fullDescJob.interview_date).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Full Raw Job Description */}
+            <div className="flex-1 flex flex-col space-y-1.5 min-h-0">
+              <div className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                <FileText className="h-3.5 w-3.5 text-indigo-400" />
+                <span>Full Job Description</span>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 bg-slate-950 border border-slate-800/80 rounded-lg text-xs leading-relaxed whitespace-pre-wrap select-text font-sans text-slate-200 scrollbar-thin">
+                {fullDescJob.description || 'No job description provided by source.'}
+              </div>
             </div>
 
-            <div className="flex items-center justify-between pt-2 border-t border-slate-800">
-              <span className="text-xs text-slate-400">
-                Source: <strong>{fullDescJob.source}</strong>
-              </span>
-              <div className="flex items-center gap-2">
+            {/* Modal Bottom Controls: Status selector + Notes button + Apply link + Close */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-800">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Select
+                  value={fullDescJob.application_status || 'NEW'}
+                  onValueChange={(val) => handleUpdateStatus(fullDescJob.id, val)}
+                  disabled={updatingId === fullDescJob.id}
+                >
+                  <SelectTrigger className="h-9 text-xs bg-slate-950 border-slate-800 w-44">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-900 border-slate-800 text-slate-200 text-xs">
+                    <SelectItem value="NEW">Unviewed / New</SelectItem>
+                    <SelectItem value="WISHLIST">⭐ Wishlist</SelectItem>
+                    <SelectItem value="SAVED">📌 Mark for Later</SelectItem>
+                    <SelectItem value="APPLIED">🚀 Applied</SelectItem>
+                    <SelectItem value="INTERVIEW_ATTENDED">🎙️ Attended Interview</SelectItem>
+                    <SelectItem value="OFFERED">🏆 Received Offer</SelectItem>
+                    <SelectItem value="REJECTED">❌ Not Interested</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => openRemarksModal(fullDescJob)}
+                  className="h-9 text-xs border-slate-700 bg-slate-950 text-slate-200 hover:bg-slate-800"
+                >
+                  <MessageSquare className="h-3.5 w-3.5 text-slate-400 mr-1" />
+                  {fullDescJob.remarks ? 'Edit Notes' : 'Add Notes'}
+                </Button>
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setFullDescJob(null)}
-                  className="text-xs text-slate-400"
+                  className="text-xs text-slate-400 hover:text-white"
                 >
                   Close
                 </Button>
@@ -662,10 +775,10 @@ export default function JobsPage() {
                   href={fullDescJob.application_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-lg"
+                  className="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors shadow"
                 >
-                  <span>Apply Now</span>
-                  <ExternalLink className="h-3 w-3" />
+                  <span>Apply on {fullDescJob.source || 'Portal'}</span>
+                  <ExternalLink className="h-3.5 w-3.5" />
                 </a>
               </div>
             </div>
