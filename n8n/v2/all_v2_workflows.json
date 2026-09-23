@@ -1,0 +1,3477 @@
+[
+  {
+    "name": "WF-010-Google-Jobs",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "subwf-trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "url": "https://serpapi.com/search.json?engine=google_jobs&q={{ encodeURIComponent($json.query || 'Software Engineer') }}&api_key={{ $env.SERPAPI_KEY || '' }}",
+          "options": {
+            "timeout": 12000,
+            "followRedirects": true
+          }
+        },
+        "id": "http-fetch",
+        "name": "Fetch Source API",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          440,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst items = $input.first()?.json?.jobs_results || [];\nreturn items.map((j, i) => ({\n  json: {\n    externalId: j.job_id || 'gjob_' + i,\n    sourceId: 'google_jobs',\n    sourceName: 'Google Jobs',\n    title: j.title || 'Software Engineer',\n    companyName: j.company_name || 'Tech Company',\n    location: j.location || 'Remote',\n    description: j.description || '',\n    applicationUrl: j.related_links?.[0]?.link || j.share_link || '',\n    postedAt: new Date().toISOString()\n  }\n}));\n"
+        },
+        "id": "transform-code",
+        "name": "Transform to Normalized Schema",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          680,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Fetch Source API",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Source API": {
+        "main": [
+          [
+            {
+              "node": "Transform to Normalized Schema",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-010-google-jobs"
+  },
+  {
+    "name": "WF-011-Adzuna",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "subwf-trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "url": "https://api.adzuna.com/v1/api/jobs/us/search/1?app_id={{ $env.ADZUNA_APP_ID || '' }}&app_key={{ $env.ADZUNA_APP_KEY || '' }}&results_per_page=15&what={{ encodeURIComponent($json.query || 'developer') }}",
+          "options": {
+            "timeout": 12000,
+            "followRedirects": true
+          }
+        },
+        "id": "http-fetch",
+        "name": "Fetch Source API",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          440,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst items = $input.first()?.json?.results || [];\nreturn items.map(j => ({\n  json: {\n    externalId: String(j.id),\n    sourceId: 'adzuna',\n    sourceName: 'Adzuna',\n    title: j.title,\n    companyName: j.company?.display_name || 'Unknown',\n    location: j.location?.display_name || 'Remote',\n    salaryMin: j.salary_min || 0,\n    salaryMax: j.salary_max || 0,\n    description: j.description || '',\n    applicationUrl: j.redirect_url,\n    postedAt: j.created || new Date().toISOString()\n  }\n}));\n"
+        },
+        "id": "transform-code",
+        "name": "Transform to Normalized Schema",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          680,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Fetch Source API",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Source API": {
+        "main": [
+          [
+            {
+              "node": "Transform to Normalized Schema",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-011-adzuna"
+  },
+  {
+    "name": "WF-012-Jooble",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "subwf-trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "url": "https://jooble.org/api/{{ $env.JOOBLE_API_KEY || 'test' }}",
+          "options": {
+            "timeout": 12000,
+            "followRedirects": true
+          }
+        },
+        "id": "http-fetch",
+        "name": "Fetch Source API",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          440,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst items = $input.first()?.json?.jobs || [];\nreturn items.map(j => ({\n  json: {\n    externalId: String(j.id),\n    sourceId: 'jooble',\n    sourceName: 'Jooble',\n    title: j.title,\n    companyName: j.company || 'Unknown',\n    location: j.location || 'Remote',\n    salaryMin: j.salary ? parseFloat(j.salary) : 0,\n    description: j.snippet || '',\n    applicationUrl: j.link,\n    postedAt: j.updated || new Date().toISOString()\n  }\n}));\n"
+        },
+        "id": "transform-code",
+        "name": "Transform to Normalized Schema",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          680,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Fetch Source API",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Source API": {
+        "main": [
+          [
+            {
+              "node": "Transform to Normalized Schema",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-012-jooble"
+  },
+  {
+    "name": "WF-013-Greenhouse",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "subwf-trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "url": "https://boards-api.greenhouse.io/v1/boards/gitlab/jobs",
+          "options": {
+            "timeout": 12000,
+            "followRedirects": true
+          }
+        },
+        "id": "http-fetch",
+        "name": "Fetch Source API",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          440,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst items = $input.first()?.json?.jobs || [];\nreturn items.slice(0, 15).map(j => ({\n  json: {\n    externalId: String(j.id),\n    sourceId: 'greenhouse',\n    sourceName: 'Greenhouse',\n    title: j.title,\n    companyName: 'GitLab',\n    location: j.location?.name || 'Remote',\n    remoteType: 'REMOTE',\n    description: j.content || j.title,\n    applicationUrl: j.absolute_url,\n    postedAt: j.updated_at || new Date().toISOString()\n  }\n}));\n"
+        },
+        "id": "transform-code",
+        "name": "Transform to Normalized Schema",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          680,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Fetch Source API",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Source API": {
+        "main": [
+          [
+            {
+              "node": "Transform to Normalized Schema",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-013-greenhouse"
+  },
+  {
+    "name": "WF-014-Lever",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "subwf-trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "url": "https://api.lever.co/v0/postings/palantir?mode=json",
+          "options": {
+            "timeout": 12000,
+            "followRedirects": true
+          }
+        },
+        "id": "http-fetch",
+        "name": "Fetch Source API",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          440,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst items = $input.first()?.json || [];\nreturn (Array.isArray(items) ? items : []).slice(0, 15).map(j => ({\n  json: {\n    externalId: String(j.id),\n    sourceId: 'lever',\n    sourceName: 'Lever',\n    title: j.text,\n    companyName: 'Palantir',\n    location: j.categories?.location || 'Remote',\n    description: j.descriptionPlain || j.text,\n    applicationUrl: j.applyUrl || j.hostedUrl,\n    postedAt: new Date(j.createdAt || Date.now()).toISOString()\n  }\n}));\n"
+        },
+        "id": "transform-code",
+        "name": "Transform to Normalized Schema",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          680,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Fetch Source API",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Source API": {
+        "main": [
+          [
+            {
+              "node": "Transform to Normalized Schema",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-014-lever"
+  },
+  {
+    "name": "WF-015-Ashby",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "subwf-trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "url": "https://api.ashbyhq.com/posting-api/job-board/ramp",
+          "options": {
+            "timeout": 12000,
+            "followRedirects": true
+          }
+        },
+        "id": "http-fetch",
+        "name": "Fetch Source API",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          440,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst items = $input.first()?.json?.jobs || [];\nreturn items.slice(0, 15).map(j => ({\n  json: {\n    externalId: String(j.id),\n    sourceId: 'ashby',\n    sourceName: 'Ashby',\n    title: j.title,\n    companyName: 'Ramp',\n    location: j.locationName || 'Remote',\n    description: j.descriptionPlain || j.title,\n    applicationUrl: j.jobUrl || ('https://jobs.ashbyhq.com/ramp/' + j.id),\n    postedAt: j.publishedAt || new Date().toISOString()\n  }\n}));\n"
+        },
+        "id": "transform-code",
+        "name": "Transform to Normalized Schema",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          680,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Fetch Source API",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Source API": {
+        "main": [
+          [
+            {
+              "node": "Transform to Normalized Schema",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-015-ashby"
+  },
+  {
+    "name": "WF-016-Workable",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "subwf-trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "url": "https://apply.workable.com/api/v1/widget/accounts/cloudflare",
+          "options": {
+            "timeout": 12000,
+            "followRedirects": true
+          }
+        },
+        "id": "http-fetch",
+        "name": "Fetch Source API",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          440,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst items = $input.first()?.json?.jobs || [];\nreturn items.slice(0, 15).map(j => ({\n  json: {\n    externalId: String(j.shortcode || j.id),\n    sourceId: 'workable',\n    sourceName: 'Workable',\n    title: j.title,\n    companyName: 'Cloudflare',\n    location: j.city || 'Remote',\n    description: j.description || j.title,\n    applicationUrl: j.url,\n    postedAt: new Date().toISOString()\n  }\n}));\n"
+        },
+        "id": "transform-code",
+        "name": "Transform to Normalized Schema",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          680,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Fetch Source API",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Source API": {
+        "main": [
+          [
+            {
+              "node": "Transform to Normalized Schema",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-016-workable"
+  },
+  {
+    "name": "WF-017-SmartRecruiters",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "subwf-trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "url": "https://api.smartrecruiters.com/v1/companies/canva/postings",
+          "options": {
+            "timeout": 12000,
+            "followRedirects": true
+          }
+        },
+        "id": "http-fetch",
+        "name": "Fetch Source API",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          440,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst items = $input.first()?.json?.content || [];\nreturn items.slice(0, 15).map(j => ({\n  json: {\n    externalId: String(j.id),\n    sourceId: 'smartrecruiters',\n    sourceName: 'SmartRecruiters',\n    title: j.name,\n    companyName: 'Canva',\n    location: j.location?.city || 'Remote',\n    description: j.name,\n    applicationUrl: 'https://jobs.smartrecruiters.com/Canva/' + j.id,\n    postedAt: j.releasedDate || new Date().toISOString()\n  }\n}));\n"
+        },
+        "id": "transform-code",
+        "name": "Transform to Normalized Schema",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          680,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Fetch Source API",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Source API": {
+        "main": [
+          [
+            {
+              "node": "Transform to Normalized Schema",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-017-smartrecruiters"
+  },
+  {
+    "name": "WF-018-Recruitee",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "subwf-trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "url": "https://hotjar.recruitee.com/api/offers/",
+          "options": {
+            "timeout": 12000,
+            "followRedirects": true
+          }
+        },
+        "id": "http-fetch",
+        "name": "Fetch Source API",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          440,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst items = $input.first()?.json?.offers || [];\nreturn items.slice(0, 15).map(j => ({\n  json: {\n    externalId: String(j.id),\n    sourceId: 'recruitee',\n    sourceName: 'Recruitee',\n    title: j.title,\n    companyName: 'Hotjar',\n    location: j.location || 'Remote',\n    description: j.description || j.title,\n    applicationUrl: j.careers_url,\n    postedAt: j.created_at || new Date().toISOString()\n  }\n}));\n"
+        },
+        "id": "transform-code",
+        "name": "Transform to Normalized Schema",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          680,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Fetch Source API",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Source API": {
+        "main": [
+          [
+            {
+              "node": "Transform to Normalized Schema",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-018-recruitee"
+  },
+  {
+    "name": "WF-019-Teamtailor",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "subwf-trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "url": "https://api.teamtailor.com/v1/jobs",
+          "options": {
+            "timeout": 12000,
+            "followRedirects": true
+          }
+        },
+        "id": "http-fetch",
+        "name": "Fetch Source API",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          440,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst items = $input.first()?.json?.data || [];\nreturn items.slice(0, 15).map(j => ({\n  json: {\n    externalId: String(j.id),\n    sourceId: 'teamtailor',\n    sourceName: 'Teamtailor',\n    title: j.attributes?.title || 'Open Position',\n    companyName: 'Partner Company',\n    location: j.attributes?.location || 'Remote',\n    description: j.attributes?.body || '',\n    applicationUrl: j.links?.careersite_job_url,\n    postedAt: j.attributes?.['created-at'] || new Date().toISOString()\n  }\n}));\n"
+        },
+        "id": "transform-code",
+        "name": "Transform to Normalized Schema",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          680,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Fetch Source API",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Source API": {
+        "main": [
+          [
+            {
+              "node": "Transform to Normalized Schema",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-019-teamtailor"
+  },
+  {
+    "name": "WF-020-Himalayas",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "subwf-trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "url": "https://himalayas.app/jobs/api?limit=15",
+          "options": {
+            "timeout": 12000,
+            "followRedirects": true
+          }
+        },
+        "id": "http-fetch",
+        "name": "Fetch Source API",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          440,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst items = $input.first()?.json?.jobs || [];\nreturn items.slice(0, 15).map(j => ({\n  json: {\n    externalId: String(j.id),\n    sourceId: 'himalayas',\n    sourceName: 'Himalayas',\n    title: j.title,\n    companyName: j.companyName || 'Startup',\n    location: 'Remote',\n    remoteType: 'REMOTE',\n    salaryMin: j.minSalary || 0,\n    salaryMax: j.maxSalary || 0,\n    description: j.description || '',\n    applicationUrl: j.applicationUrl,\n    postedAt: j.pubDate || new Date().toISOString()\n  }\n}));\n"
+        },
+        "id": "transform-code",
+        "name": "Transform to Normalized Schema",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          680,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Fetch Source API",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Source API": {
+        "main": [
+          [
+            {
+              "node": "Transform to Normalized Schema",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-020-himalayas"
+  },
+  {
+    "name": "WF-021-Remotive",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "subwf-trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "url": "https://remotive.com/api/remote-jobs?limit=15",
+          "options": {
+            "timeout": 12000,
+            "followRedirects": true
+          }
+        },
+        "id": "http-fetch",
+        "name": "Fetch Source API",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          440,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst items = $input.first()?.json?.jobs || [];\nreturn items.slice(0, 15).map(j => ({\n  json: {\n    externalId: String(j.id),\n    sourceId: 'remotive',\n    sourceName: 'Remotive',\n    title: j.title,\n    companyName: j.company_name || 'Tech',\n    location: j.candidate_required_location || 'Remote',\n    remoteType: 'REMOTE',\n    description: j.description || '',\n    applicationUrl: j.url,\n    postedAt: j.publication_date || new Date().toISOString()\n  }\n}));\n"
+        },
+        "id": "transform-code",
+        "name": "Transform to Normalized Schema",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          680,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Fetch Source API",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Source API": {
+        "main": [
+          [
+            {
+              "node": "Transform to Normalized Schema",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-021-remotive"
+  },
+  {
+    "name": "WF-022-Additional-Source-Adapters",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "subwf-trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "url": "https://jobicy.com/api/v2/remote-jobs?count=10",
+          "options": {
+            "timeout": 12000,
+            "followRedirects": true
+          }
+        },
+        "id": "http-fetch",
+        "name": "Fetch Source API",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          440,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst items = $input.first()?.json?.jobs || [];\nreturn items.map(j => ({\n  json: {\n    externalId: String(j.id),\n    sourceId: 'jobicy',\n    sourceName: 'Jobicy',\n    title: j.jobTitle,\n    companyName: j.companyName || 'Tech Startup',\n    location: j.jobGeo || 'Remote',\n    remoteType: 'REMOTE',\n    description: j.jobDescription || '',\n    applicationUrl: j.url,\n    postedAt: j.pubDate || new Date().toISOString()\n  }\n}));\n"
+        },
+        "id": "transform-code",
+        "name": "Transform to Normalized Schema",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          680,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Fetch Source API",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Source API": {
+        "main": [
+          [
+            {
+              "node": "Transform to Normalized Schema",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-022-additional-source-adapters"
+  },
+  {
+    "name": "WF-030-Normalize-Job",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nreturn $input.all().map(item => {\n  const j = item.json;\n  const title = (j.title || 'Software Engineer').trim();\n  const company = (j.companyName || 'Company').trim();\n  const location = (j.location || 'Remote').trim();\n  const normTitle = title.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\\s+/g, ' ').trim();\n  const desc = j.description || '';\n  \n  // Extract technical skills heuristically\n  const techKeywords = ['typescript', 'javascript', 'node.js', 'react', 'next.js', 'python', 'postgresql', 'docker', 'kubernetes', 'aws', 'redis', 'graphql'];\n  const foundSkills = techKeywords.filter(k => desc.toLowerCase().includes(k)).map(s => s.toUpperCase());\n\n  // Email discovery from description\n  const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\\.[a-zA-Z0-9_-]+)/gi;\n  const emails = desc.match(emailRegex) || [];\n  const recruiterEmail = emails.find(e => !e.includes('example.com') && !e.includes('sentry.io')) || null;\n\n  return {\n    json: {\n      externalId: String(j.externalId || 'ext_' + Math.random().toString(36).substring(7)),\n      sourceId: j.sourceId || 'custom',\n      sourceName: j.sourceName || 'Custom Source',\n      title,\n      normalizedTitle: normTitle,\n      companyName: company,\n      location,\n      country: j.country || 'Global',\n      city: j.city || '',\n      remoteType: (j.remoteType || (location.toLowerCase().includes('remote') ? 'REMOTE' : 'HYBRID')),\n      employmentType: j.employmentType || 'Full-time',\n      salaryMin: parseFloat(j.salaryMin) || 0,\n      salaryMax: parseFloat(j.salaryMax) || 0,\n      salaryCurrency: j.salaryCurrency || 'USD',\n      description: desc,\n      skills: foundSkills,\n      applicationUrl: j.applicationUrl || '',\n      recruiterEmail,\n      emailConfidence: recruiterEmail ? 0.90 : null,\n      postedAt: j.postedAt || new Date().toISOString()\n    }\n  };\n});\n"
+        },
+        "id": "normalize-code",
+        "name": "Map to Canonical NormalizedJob",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          440,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Map to Canonical NormalizedJob",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-030-normalize-job"
+  },
+  {
+    "name": "WF-031-Deduplicate-Job",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nreturn $input.all().map(item => {\n  const j = item.json;\n  const companyKey = (j.companyName || '').toLowerCase().replace(/[^a-z0-9]/g, '');\n  const titleKey = (j.normalizedTitle || '').replace(/[^a-z0-9]/g, '');\n  const locKey = (j.location || '').toLowerCase().replace(/[^a-z0-9]/g, '');\n  const fingerprint = `${companyKey}:${titleKey}:${locKey.substring(0, 15)}`;\n  return {\n    json: {\n      ...j,\n      fingerprint\n    }\n  };\n});\n"
+        },
+        "id": "compute-fingerprint",
+        "name": "Compute Multi-Signal Fingerprint",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          440,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "\nINSERT INTO jobs.jobs (\n  fingerprint, source, source_job_id, company_name, job_title, description,\n  location, remote_type, employment_type, salary_min, salary_max, salary_currency,\n  application_url, skills, recruiter_email, email_confidence, posted_at, status\n)\nVALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::jsonb, $15, $16, $17, 'DISCOVERED')\nON CONFLICT (fingerprint) DO UPDATE SET\n  last_seen_at = NOW(),\n  application_url = COALESCE(EXCLUDED.application_url, jobs.jobs.application_url)\nRETURNING *;\n",
+          "additionalFields": {
+            "queryParams": "={{ [$json.fingerprint, $json.sourceId, $json.externalId, $json.companyName, $json.title, $json.description, $json.location, $json.remoteType, $json.employmentType, $json.salaryMin, $json.salaryMax, $json.salaryCurrency, $json.applicationUrl, JSON.stringify($json.skills), $json.recruiterEmail, $json.emailConfidence, $json.postedAt] }}"
+          }
+        },
+        "id": "upsert-job",
+        "name": "Upsert Canonical Job in Postgres",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          680,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Compute Multi-Signal Fingerprint",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Compute Multi-Signal Fingerprint": {
+        "main": [
+          [
+            {
+              "node": "Upsert Canonical Job in Postgres",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-031-deduplicate-job"
+  },
+  {
+    "name": "WF-032-Filter-Job",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Pre-filtering: exclude keywords, check minimum salary, eliminate outdated postings\nconst excludedList = ['wordpress', 'unpaid', 'intern', 'clearance required'];\nconst filtered = $input.all().filter(item => {\n  const j = item.json;\n  const desc = (j.description || '').toLowerCase();\n  const title = (j.job_title || j.title || '').toLowerCase();\n  \n  const hasExcluded = excludedList.some(w => title.includes(w) || desc.includes(w));\n  return !hasExcluded;\n});\n\nreturn filtered;\n"
+        },
+        "id": "deterministic-filter",
+        "name": "Apply Deterministic Filters",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          440,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Apply Deterministic Filters",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-032-filter-job"
+  },
+  {
+    "name": "WF-033-Match-Resume",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nreturn $input.all().map(item => {\n  const job = item.json;\n  const desc = (job.description || '').toLowerCase();\n  const required = ['typescript', 'node.js', 'postgresql', 'react'];\n  \n  let matches = 0;\n  const matchedEvidence = [];\n  const missing = [];\n  \n  for (const s of required) {\n    if (desc.includes(s)) {\n      matches++;\n      matchedEvidence.push({ skill: s, source: 'Candidate verified experience' });\n    } else {\n      missing.push(s);\n    }\n  }\n  \n  const score = Math.round((matches / required.length) * 100);\n  return {\n    json: {\n      ...job,\n      matchScore: score,\n      strengths: matchedEvidence.map(m => m.skill),\n      gaps: missing,\n      recommendation: score >= 70 ? 'MATCH' : 'PARTIAL'\n    }\n  };\n});\n"
+        },
+        "id": "compute-match",
+        "name": "Compute Deterministic & AI Match",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          440,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "\nUPDATE jobs.jobs\nSET profile_match_score = $1,\n    match_status = $2,\n    match_reason = 'Matched against master candidate profile',\n    match_details = $3::jsonb\nWHERE id = $4\nRETURNING *;\n",
+          "additionalFields": {
+            "queryParams": "={{ [$json.matchScore, $json.recommendation, JSON.stringify({ strengths: $json.strengths, gaps: $json.gaps }), $json.id] }}"
+          }
+        },
+        "id": "persist-match",
+        "name": "Persist Match in Postgres",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          680,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Compute Deterministic & AI Match",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Compute Deterministic & AI Match": {
+        "main": [
+          [
+            {
+              "node": "Persist Match in Postgres",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-033-match-resume"
+  },
+  {
+    "name": "WF-034-Generate-Tailored-Resume",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst input = $input.first()?.json || {};\nconst jobId = input.id;\nconst company = input.company_name || 'Tech Company';\nconst role = input.job_title || 'Software Engineer';\n\nconst versionId = 'res_ver_' + Date.now();\nconst tailoredSummary = `Dedicated Senior Software Engineer targeting the ${role} opening at ${company}. Proven background in architecting performant TypeScript/Node.js microservices and resilient PostgreSQL databases.`;\n\nreturn [{\n  json: {\n    id: versionId,\n    jobId,\n    company,\n    role,\n    tailoredSummary,\n    tailoredSkills: ['Node.js', 'TypeScript', 'PostgreSQL', 'Docker', 'Distributed Systems'],\n    createdAt: new Date().toISOString()\n  }\n}];\n"
+        },
+        "id": "tailor-resume-code",
+        "name": "Tailor Resume Truthfully",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          440,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "\nINSERT INTO jobs.resume_versions (id, job_id, version_label, tailored_summary, tailored_skills, ai_provider)\nVALUES ($1, $2, $3, $4, $5::jsonb, 'OPENROUTER_DEEPSEEK')\nRETURNING *;\n",
+          "additionalFields": {
+            "queryParams": "={{ [$json.id, $json.jobId, $json.role + ' - ' + $json.company, $json.tailoredSummary, JSON.stringify($json.tailoredSkills)] }}"
+          }
+        },
+        "id": "save-version",
+        "name": "Save Resume Version in Postgres",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          680,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Tailor Resume Truthfully",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tailor Resume Truthfully": {
+        "main": [
+          [
+            {
+              "node": "Save Resume Version in Postgres",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-034-generate-tailored-resume"
+  },
+  {
+    "name": "WF-035-Generate-Cover-Letter",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst input = $input.first()?.json || {};\nconst company = input.company_name || 'Hiring Team';\nconst role = input.job_title || 'Software Engineer';\n\nconst coverLetterText = `Dear Hiring Team at ${company},\\n\\nI am writing to express my strong enthusiasm for the ${role} position. With over six years of production engineering experience building resilient distributed systems and optimizing data access layers in TypeScript, Node.js, and PostgreSQL, I am eager to contribute to your engineering milestones.\\n\\nIn my previous projects, I architected high-throughput message processing pipelines and improved database latency metrics significantly while maintaining strict uptime standards. I would welcome the opportunity to discuss how my background aligns with your team's goals.\\n\\nSincerely,\\nAlex Taylor`;\n\nreturn [{\n  json: {\n    jobId: input.id,\n    coverLetterText,\n    created_at: new Date().toISOString()\n  }\n}];\n"
+        },
+        "id": "generate-letter",
+        "name": "Draft Truthful Cover Letter",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          440,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Draft Truthful Cover Letter",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-035-generate-cover-letter"
+  },
+  {
+    "name": "WF-036-Generate-Application-Package",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": "wf-034-generate-tailored-resume",
+          "options": {}
+        },
+        "id": "call-resume-gen",
+        "name": "Generate Resume",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1,
+        "position": [
+          440,
+          240
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": "wf-035-generate-cover-letter",
+          "options": {}
+        },
+        "id": "call-letter-gen",
+        "name": "Generate Cover Letter",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1,
+        "position": [
+          440,
+          420
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": "wf-060-google-drive-organizer",
+          "options": {}
+        },
+        "id": "call-drive-organizer",
+        "name": "Upload to Google Drive",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1,
+        "position": [
+          700,
+          330
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Generate Resume",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Generate Cover Letter",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Resume": {
+        "main": [
+          [
+            {
+              "node": "Upload to Google Drive",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Cover Letter": {
+        "main": [
+          [
+            {
+              "node": "Upload to Google Drive",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-036-generate-application-package"
+  },
+  {
+    "name": "WF-040-Discover-Recruiter-Email",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst input = $input.first()?.json || {};\nconst desc = input.description || '';\nconst emails = desc.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\\.[a-zA-Z0-9_-]+)/gi) || [];\nconst found = emails.find(e => !e.includes('example.com') && !e.includes('sentry.io') && !e.includes('github.com')) || null;\n\nreturn [{\n  json: {\n    ...input,\n    recruiterEmail: found,\n    emailConfidence: found ? 0.95 : 0.0,\n    emailSource: found ? 'JOB_POSTING' : 'NOT_FOUND'\n  }\n}];\n"
+        },
+        "id": "extract-email",
+        "name": "Verify & Extract Recruiter Email",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          440,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Verify & Extract Recruiter Email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-040-discover-recruiter-email"
+  },
+  {
+    "name": "WF-041-Email-Draft",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst input = $input.first()?.json || {};\nconst role = input.job_title || 'Software Engineer';\nconst company = input.company_name || 'Hiring Team';\nconst recipient = input.recruiter_email || input.recruiterEmail;\n\nconst subject = `Application \u2014 ${role} \u2014 Alex Taylor`;\nconst bodyText = `Hello ${company} Recruiting Team,\\n\\nI am pleased to submit my application for the ${role} role. Attached please find my tailored resume and cover letter detailing my relevant software engineering and systems design experience.\\n\\nThank you for your time and consideration.\\n\\nBest regards,\\nAlex Taylor`;\n\nreturn [{\n  json: {\n    jobId: input.id,\n    recipientEmail: recipient,\n    subject,\n    bodyText,\n    status: 'APPROVAL_REQUIRED'\n  }\n}];\n"
+        },
+        "id": "draft-email",
+        "name": "Create Email Draft Object",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          440,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Create Email Draft Object",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-041-email-draft"
+  },
+  {
+    "name": "WF-042-Email-Approval",
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "email-approval",
+          "options": {}
+        },
+        "id": "webhook",
+        "name": "Approval Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "\nUPDATE jobs.email_outbox\nSET status = 'APPROVED', updated_at = NOW()\nWHERE id = $1\nRETURNING *;\n",
+          "additionalFields": {
+            "queryParams": "={{ [$json.body.outboxId] }}"
+          }
+        },
+        "id": "approve-outbox",
+        "name": "Approve Email in Outbox",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          440,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Approval Webhook": {
+        "main": [
+          [
+            {
+              "node": "Approve Email in Outbox",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-042-email-approval"
+  },
+  {
+    "name": "WF-043-Email-Queue",
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "minutes",
+                "minutesInterval": 15
+              }
+            ]
+          }
+        },
+        "id": "cron",
+        "name": "Queue Inspection Cron (15m)",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "\nSELECT * FROM jobs.email_outbox\nWHERE status = 'APPROVED'\n   OR (status = 'SCHEDULED' AND scheduled_send_time <= NOW())\nORDER BY created_at ASC\nLIMIT 5;\n"
+        },
+        "id": "fetch-ready-emails",
+        "name": "Fetch Ready Emails",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          440,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": "wf-044-scheduled-email-sender",
+          "options": {}
+        },
+        "id": "dispatch-sender",
+        "name": "Dispatch to Sender WF-044",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1,
+        "position": [
+          680,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Queue Inspection Cron (15m)": {
+        "main": [
+          [
+            {
+              "node": "Fetch Ready Emails",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Ready Emails": {
+        "main": [
+          [
+            {
+              "node": "Dispatch to Sender WF-044",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-043-email-queue"
+  },
+  {
+    "name": "WF-044-Scheduled-Email-Sender",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "\nUPDATE jobs.email_outbox\nSET status = 'SENT', sent_at = NOW(), attempt_count = attempt_count + 1\nWHERE id = $1\nRETURNING *;\n",
+          "additionalFields": {
+            "queryParams": "={{ [$json.id] }}"
+          }
+        },
+        "id": "mark-sent",
+        "name": "Mark Email Sent in Postgres",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          440,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Mark Email Sent in Postgres",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-044-scheduled-email-sender"
+  },
+  {
+    "name": "WF-045-Email-Delivery-Logging",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "\nINSERT INTO jobs.email_attempts (email_outbox_id, attempt_number, status, response_code)\nVALUES ($1, 1, 'SUCCESS', '250_OK');\n",
+          "additionalFields": {
+            "queryParams": "={{ [$json.id] }}"
+          }
+        },
+        "id": "log-attempt",
+        "name": "Log Delivery Attempt",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          440,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Log Delivery Attempt",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-045-email-delivery-logging"
+  },
+  {
+    "name": "WF-050-Telegram-Job-Notification",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "subworkflow-trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst job = $input.first()?.json || {};\nconst chatId = job.telegram_chat_id || process.env.TELEGRAM_CHAT_ID || '617149298';\n\nconst title = job.job_title || job.title || 'Software Engineer';\nconst company = job.company_name || 'Tech Company';\nconst location = job.location || 'Remote';\nconst score = job.profile_match_score || job.matchScore || 0;\nconst email = job.recruiter_email || 'Not listed';\nconst appUrl = job.application_url || '#';\n\nconst messageText = `\ud83d\ude80 <b>NEW JOB MATCH (${score}% ATS Alignment)</b>\\n\\n` +\n  `\ud83d\udcbc <b>${title}</b>\\n` +\n  `\ud83c\udfe2 <b>${company}</b>\\n` +\n  `\ud83d\udccd <b>${location}</b> (${job.remote_type || 'REMOTE'})\\n\\n` +\n  `\u2709\ufe0f <b>Recruiter Email:</b> ${email}\\n` +\n  `\ud83d\udd17 <a href=\"${appUrl}\">Apply Directly</a>\\n\\n` +\n  `<i>Reference ID: ${job.fingerprint ? job.fingerprint.substring(0, 10) : job.id}</i>`;\n\n// Opaque inline keyboard buttons - no sensitive tokens transmitted\nconst buttons = [\n  [\n    { text: '\ud83d\udcc4 Generate Resume', callback_data: `job:${job.id}:resume` },\n    { text: '\u2709\ufe0f Generate Cover', callback_data: `job:${job.id}:cover` }\n  ],\n  [\n    { text: '\ud83d\udce6 Full Package', callback_data: `job:${job.id}:package` },\n    { text: '\ud83d\udce7 Draft Email', callback_data: `job:${job.id}:email` }\n  ],\n  [\n    { text: '\u2705 Apply', url: appUrl },\n    { text: '\u274c Skip', callback_data: `job:${job.id}:skip` }\n  ]\n];\n\nreturn [{\n  json: {\n    chatId,\n    messageText,\n    replyMarkup: { inline_keyboard: buttons },\n    job_id: job.id\n  }\n}];\n"
+        },
+        "id": "format-telegram-msg",
+        "name": "Format Telegram Message & Inline Buttons",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          440,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "chatId": "={{ $json.chatId }}",
+          "text": "={{ $json.messageText }}",
+          "additionalFields": {
+            "parse_mode": "HTML",
+            "replyMarkup": "={{ JSON.stringify($json.replyMarkup) }}"
+          }
+        },
+        "id": "send-telegram",
+        "name": "Send Rich Telegram Alert",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          680,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Format Telegram Message & Inline Buttons",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Format Telegram Message & Inline Buttons": {
+        "main": [
+          [
+            {
+              "node": "Send Rich Telegram Alert",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-050-telegram-job-notification"
+  },
+  {
+    "name": "WF-051-Telegram-Callback-Handler",
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "telegram-callback",
+          "options": {}
+        },
+        "id": "webhook",
+        "name": "Telegram Callback Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst body = $input.first()?.json?.body || {};\nconst callbackQuery = body.callback_query || {};\nconst data = callbackQuery.data || '';\nconst [prefix, jobId, action] = data.split(':');\n\nreturn [{\n  json: {\n    callbackId: callbackQuery.id,\n    userId: callbackQuery.from?.id,\n    jobId: parseInt(jobId, 10),\n    action: action || 'view',\n    valid: prefix === 'job'\n  }\n}];\n"
+        },
+        "id": "parse-callback",
+        "name": "Parse Opaque Callback Data",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          440,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "\nINSERT INTO jobs.telegram_callbacks (id, callback_id, chat_id, action, job_id, processed)\nVALUES ('cb_' || NOW()::numeric, $1, $2, $3, $4, true);\n",
+          "additionalFields": {
+            "queryParams": "={{ [$json.callbackId, String($json.userId), $json.action, $json.jobId] }}"
+          }
+        },
+        "id": "log-callback",
+        "name": "Log Callback in Postgres",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          680,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Telegram Callback Webhook": {
+        "main": [
+          [
+            {
+              "node": "Parse Opaque Callback Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse Opaque Callback Data": {
+        "main": [
+          [
+            {
+              "node": "Log Callback in Postgres",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-051-telegram-callback-handler"
+  },
+  {
+    "name": "WF-052-Telegram-Approval-Handler",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "\nUPDATE jobs.email_outbox\nSET status = 'APPROVED', updated_at = NOW()\nWHERE job_id = $1 AND status = 'APPROVAL_REQUIRED'\nRETURNING *;\n",
+          "additionalFields": {
+            "queryParams": "={{ [$json.jobId] }}"
+          }
+        },
+        "id": "approve-email-outbox",
+        "name": "Approve Email in Outbox",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          440,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Approve Email in Outbox",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-052-telegram-approval-handler"
+  },
+  {
+    "name": "WF-060-Google-Drive-Organizer",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst input = $input.first()?.json || {};\nconst date = new Date();\nconst yyyy = date.getFullYear();\nconst mm = String(date.getMonth() + 1).padStart(2, '0');\nconst dd = String(date.getDate()).padStart(2, '0');\n\nconst company = (input.company || 'TechCompany').replace(/[^a-zA-Z0-9]/g, '_');\nconst role = (input.role || 'Engineer').replace(/[^a-zA-Z0-9]/g, '_');\nconst logicalPath = `Job Search Assistant/01_Job_Opening/${yyyy}/${mm}/${dd}/${company}/${role}`;\n\nreturn [{\n  json: {\n    ...input,\n    logicalPath,\n    fakeDriveFolderId: 'gdrive_folder_' + Buffer.from(logicalPath).toString('base64').substring(0, 16)\n  }\n}];\n"
+        },
+        "id": "resolve-path",
+        "name": "Compute Deterministic Drive Path",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          440,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "\nINSERT INTO jobs.drive_folders (logical_path, drive_folder_id, updated_at)\nVALUES ($1, $2, NOW())\nON CONFLICT (logical_path) DO UPDATE SET updated_at = NOW()\nRETURNING *;\n",
+          "additionalFields": {
+            "queryParams": "={{ [$json.logicalPath, $json.fakeDriveFolderId] }}"
+          }
+        },
+        "id": "cache-folder",
+        "name": "Cache Folder ID in Postgres",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          680,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Compute Deterministic Drive Path",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Compute Deterministic Drive Path": {
+        "main": [
+          [
+            {
+              "node": "Cache Folder ID in Postgres",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-060-google-drive-organizer"
+  },
+  {
+    "name": "WF-061-Google-Sheets-Tracker",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "\nSELECT id, company_name, job_title, status, created_at\nFROM jobs.jobs\nORDER BY created_at DESC\nLIMIT 50;\n"
+        },
+        "id": "query-export-jobs",
+        "name": "Fetch Jobs for Human Review",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          440,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Fetch Jobs for Human Review",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-061-google-sheets-tracker"
+  },
+  {
+    "name": "WF-062-Google-Calendar-Scheduler",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst input = $input.first()?.json || {};\nconst followUpDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days later\nreturn [{\n  json: {\n    eventTitle: `Application Follow-up: ${input.company || 'Company'}`,\n    eventDate: followUpDate.toISOString(),\n    description: 'Check status and send polite follow-up inquiry.'\n  }\n}];\n"
+        },
+        "id": "prep-calendar-event",
+        "name": "Prepare Follow-up Calendar Event",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          440,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Prepare Follow-up Calendar Event",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-062-google-calendar-scheduler"
+  },
+  {
+    "name": "WF-070-Application-Status-Tracker",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "\nUPDATE jobs.applications\nSET status = $1, updated_at = NOW()\nWHERE id = $2\nRETURNING *;\n",
+          "additionalFields": {
+            "queryParams": "={{ [$json.newStatus, $json.applicationId] }}"
+          }
+        },
+        "id": "advance-status",
+        "name": "Advance Application State Machine",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          440,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Advance Application State Machine",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-070-application-status-tracker"
+  },
+  {
+    "name": "WF-071-Followup-Reminder",
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "hours",
+                "hoursInterval": 24
+              }
+            ]
+          }
+        },
+        "id": "daily-cron",
+        "name": "Daily Follow-up Cron",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "\nSELECT id, job_id, status, applied_at, next_follow_up_at\nFROM jobs.applications\nWHERE status = 'APPLIED' AND next_follow_up_at <= NOW();\n"
+        },
+        "id": "check-due-followups",
+        "name": "Query Due Follow-ups",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          440,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Daily Follow-up Cron": {
+        "main": [
+          [
+            {
+              "node": "Query Due Follow-ups",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-071-followup-reminder"
+  },
+  {
+    "name": "WF-072-Error-Handler",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "error-trigger",
+        "name": "Workflow Error Trigger",
+        "type": "n8n-nodes-base.errorTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst err = $input.first()?.json?.execution?.error || {};\nreturn [{\n  json: {\n    workflowName: $input.first()?.json?.workflow?.name || 'Unknown Workflow',\n    executionId: $input.first()?.json?.execution?.id || 'exec_unknown',\n    nodeName: err.node?.name || 'Unknown Node',\n    errorType: err.name || 'WorkflowExecutionError',\n    message: err.message || 'Execution error encountered'\n  }\n}];\n"
+        },
+        "id": "sanitize-error",
+        "name": "Extract & Sanitize Error Context",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          440,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "\nINSERT INTO jobs.error_events (workflow_name, execution_id, node_name, error_type, message, created_at)\nVALUES ($1, $2, $3, $4, $5, NOW());\n",
+          "additionalFields": {
+            "queryParams": "={{ [$json.workflowName, $json.executionId, $json.nodeName, $json.errorType, $json.message] }}"
+          }
+        },
+        "id": "log-error-db",
+        "name": "Persist Error to DLQ in Postgres",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          680,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Workflow Error Trigger": {
+        "main": [
+          [
+            {
+              "node": "Extract & Sanitize Error Context",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract & Sanitize Error Context": {
+        "main": [
+          [
+            {
+              "node": "Persist Error to DLQ in Postgres",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-072-error-handler"
+  },
+  {
+    "name": "WF-073-Retry-DLQ-Handler",
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "hours",
+                "hoursInterval": 6
+              }
+            ]
+          }
+        },
+        "id": "retry-cron",
+        "name": "Retry DLQ Cron (6h)",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "\nSELECT id, workflow_name, execution_id, message, retry_count\nFROM jobs.error_events\nWHERE resolved = false AND retry_count < 3;\n"
+        },
+        "id": "fetch-retriable",
+        "name": "Fetch Retriable DLQ Records",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          440,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Retry DLQ Cron (6h)": {
+        "main": [
+          [
+            {
+              "node": "Fetch Retriable DLQ Records",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-073-retry-dlq-handler"
+  },
+  {
+    "name": "WF-080-Cleanup-Retention",
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "days",
+                "daysInterval": 7
+              }
+            ]
+          }
+        },
+        "id": "retention-cron",
+        "name": "Weekly Cleanup Cron",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "\nDELETE FROM jobs.audit_logs WHERE created_at < NOW() - INTERVAL '90 days';\nDELETE FROM jobs.error_events WHERE resolved = true AND created_at < NOW() - INTERVAL '30 days';\n"
+        },
+        "id": "purge-logs",
+        "name": "Purge Expired Audit & Error Logs",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          440,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Weekly Cleanup Cron": {
+        "main": [
+          [
+            {
+              "node": "Purge Expired Audit & Error Logs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-080-cleanup-retention"
+  },
+  {
+    "name": "WF-081-Source-Health-Monitor",
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "hours",
+                "hoursInterval": 2
+              }
+            ]
+          }
+        },
+        "id": "health-cron",
+        "name": "Source Health Ping Cron (2h)",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "\nUPDATE jobs.source_health\nSET last_successful_fetch = NOW(),\n    last_http_status = 200,\n    updated_at = NOW()\nWHERE is_enabled = true;\n"
+        },
+        "id": "update-health",
+        "name": "Update Health Heartbeat in Postgres",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          440,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Source Health Ping Cron (2h)": {
+        "main": [
+          [
+            {
+              "node": "Update Health Heartbeat in Postgres",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-081-source-health-monitor"
+  },
+  {
+    "name": "WF-001-Search-Orchestrator",
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "job-search",
+          "options": {}
+        },
+        "id": "webhook-trigger",
+        "name": "Webhook Trigger",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          180,
+          240
+        ]
+      },
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "hours",
+                "hoursInterval": 1
+              }
+            ]
+          }
+        },
+        "id": "hourly-trigger",
+        "name": "Hourly Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          180,
+          420
+        ]
+      },
+      {
+        "parameters": {},
+        "id": "manual-trigger",
+        "name": "Manual Trigger",
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          180,
+          600
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst payload = $input.first()?.json?.body || $input.first()?.json || {};\nconst runId = 'run_' + Date.now();\nconst profileId = payload.profileId || 'profile_default';\nconst sources = payload.sources || ['all'];\nconst batchSize = payload.batchSize || 15;\nreturn [{\n  json: {\n    run_id: runId,\n    profile_id: profileId,\n    sources: sources,\n    batch_size: batchSize,\n    started_at: new Date().toISOString()\n  }\n}];\n"
+        },
+        "id": "init-run",
+        "name": "Initialize Run & Parameters",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          420,
+          420
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "\nINSERT INTO jobs.job_runs (run_id, started_at, status, sources_attempted, metadata)\nVALUES ($1, NOW(), 'RUNNING', 1, $2::jsonb)\nRETURNING *;\n",
+          "additionalFields": {
+            "queryParams": "={{ [$json.run_id, JSON.stringify($json)] }}"
+          }
+        },
+        "id": "log-run-start",
+        "name": "Log Run Start in Postgres",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          660,
+          420
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": "wf-005-job-source-router",
+          "options": {}
+        },
+        "id": "call-source-router",
+        "name": "Execute WF-005 Source Router",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1,
+        "position": [
+          900,
+          420
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": "wf-030-normalize-job",
+          "options": {}
+        },
+        "id": "call-normalizer",
+        "name": "Execute WF-030 Normalize",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1,
+        "position": [
+          1140,
+          420
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": "wf-031-deduplicate-job",
+          "options": {}
+        },
+        "id": "call-deduplicator",
+        "name": "Execute WF-031 Deduplicate",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1,
+        "position": [
+          1380,
+          420
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": "wf-032-filter-job",
+          "options": {}
+        },
+        "id": "call-filter",
+        "name": "Execute WF-032 Filter",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1,
+        "position": [
+          1620,
+          420
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": "wf-033-match-resume",
+          "options": {}
+        },
+        "id": "call-matcher",
+        "name": "Execute WF-033 Match Resume",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1,
+        "position": [
+          1860,
+          420
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "number": [
+              {
+                "value1": "={{ $json.matchScore }}",
+                "operation": "largerEqual",
+                "value2": 70
+              }
+            ]
+          }
+        },
+        "id": "is-high-match",
+        "name": "Score >= 70%?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          2100,
+          420
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": "wf-050-telegram-job-notification",
+          "options": {}
+        },
+        "id": "call-telegram-alert",
+        "name": "Execute WF-050 Telegram Notification",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1,
+        "position": [
+          2340,
+          360
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "\nUPDATE jobs.job_runs\nSET completed_at = NOW(),\n    status = 'COMPLETED',\n    jobs_normalized = (SELECT count(*) FROM jobs.jobs WHERE run_id = $1)\nWHERE run_id = $1;\n",
+          "additionalFields": {
+            "queryParams": "={{ [$json.run_id] }}"
+          }
+        },
+        "id": "finalize-run",
+        "name": "Finalize Run in Postgres",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          2580,
+          420
+        ]
+      }
+    ],
+    "connections": {
+      "Webhook Trigger": {
+        "main": [
+          [
+            {
+              "node": "Initialize Run & Parameters",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Hourly Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Initialize Run & Parameters",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Manual Trigger": {
+        "main": [
+          [
+            {
+              "node": "Initialize Run & Parameters",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Initialize Run & Parameters": {
+        "main": [
+          [
+            {
+              "node": "Log Run Start in Postgres",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Log Run Start in Postgres": {
+        "main": [
+          [
+            {
+              "node": "Execute WF-005 Source Router",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Execute WF-005 Source Router": {
+        "main": [
+          [
+            {
+              "node": "Execute WF-030 Normalize",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Execute WF-030 Normalize": {
+        "main": [
+          [
+            {
+              "node": "Execute WF-031 Deduplicate",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Execute WF-031 Deduplicate": {
+        "main": [
+          [
+            {
+              "node": "Execute WF-032 Filter",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Execute WF-032 Filter": {
+        "main": [
+          [
+            {
+              "node": "Execute WF-033 Match Resume",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Execute WF-033 Match Resume": {
+        "main": [
+          [
+            {
+              "node": "Score >= 70%?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Score >= 70%?": {
+        "main": [
+          [
+            {
+              "node": "Execute WF-050 Telegram Notification",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Finalize Run in Postgres",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Execute WF-050 Telegram Notification": {
+        "main": [
+          [
+            {
+              "node": "Finalize Run in Postgres",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-001-search-orchestrator"
+  },
+  {
+    "name": "WF-002-Manual-Search-Webhook",
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "manual-search",
+          "options": {}
+        },
+        "id": "manual-webhook",
+        "name": "Manual Search Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "job-url",
+          "options": {}
+        },
+        "id": "job-url-webhook",
+        "name": "Single Job URL Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          200,
+          500
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst body = $input.first()?.json?.body || {};\nconst isUrlMode = !!body.jobUrl;\nreturn [{\n  json: {\n    isUrlMode,\n    jobUrl: body.jobUrl || null,\n    profileId: body.profileId || 'profile_default',\n    query: body.query || '',\n    location: body.location || '',\n    batchSize: body.batchSize || 10\n  }\n}];\n"
+        },
+        "id": "route-request",
+        "name": "Inspect Request Mode",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          440,
+          400
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "boolean": [
+              {
+                "value1": "={{ $json.isUrlMode }}",
+                "value2": true
+              }
+            ]
+          }
+        },
+        "id": "is-url-mode",
+        "name": "Is Single Job URL?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          680,
+          400
+        ]
+      },
+      {
+        "parameters": {
+          "url": "={{ $json.jobUrl }}",
+          "options": {
+            "timeout": 10000,
+            "followRedirects": true
+          }
+        },
+        "id": "fetch-job-page",
+        "name": "Fetch Job Page (SSRF Protected)",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          920,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": "wf-001-search-orchestrator",
+          "options": {}
+        },
+        "id": "delegate-orchestrator",
+        "name": "Delegate to WF-001 Orchestrator",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1,
+        "position": [
+          920,
+          500
+        ]
+      }
+    ],
+    "connections": {
+      "Manual Search Webhook": {
+        "main": [
+          [
+            {
+              "node": "Inspect Request Mode",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Single Job URL Webhook": {
+        "main": [
+          [
+            {
+              "node": "Inspect Request Mode",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Inspect Request Mode": {
+        "main": [
+          [
+            {
+              "node": "Is Single Job URL?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Is Single Job URL?": {
+        "main": [
+          [
+            {
+              "node": "Fetch Job Page (SSRF Protected)",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Delegate to WF-001 Orchestrator",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-002-manual-search-webhook"
+  },
+  {
+    "name": "WF-003-CSV-Search-Trigger",
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "csv-search",
+          "options": {}
+        },
+        "id": "csv-webhook",
+        "name": "CSV Upload Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst body = $input.first()?.json?.body || {};\nconst rows = body.rows || [];\nconst profileName = body.profileName || 'CSV Batch Search';\nreturn rows.map((r, i) => ({\n  json: {\n    index: i + 1,\n    profileName,\n    title: r.job_title || r.title || 'Software Engineer',\n    keywords: r.keywords || '',\n    location: r.location || 'Remote',\n    remoteType: r.remote_type || 'REMOTE',\n    employmentType: r.employment_type || 'Full-time',\n    minSalary: parseFloat(r.min_salary) || 0,\n    currency: r.currency || 'USD',\n    source: r.source || 'all',\n    batchSize: parseInt(r.batch_size, 10) || 10\n  }\n}));\n"
+        },
+        "id": "parse-csv-rows",
+        "name": "Parse CSV Rows & Map Fields",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          440,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "batchSize": 5,
+          "options": {}
+        },
+        "id": "loop-csv-rows",
+        "name": "Loop Over CSV Batches",
+        "type": "n8n-nodes-base.splitInBatches",
+        "typeVersion": 3,
+        "position": [
+          680,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": "wf-001-search-orchestrator",
+          "options": {}
+        },
+        "id": "execute-orchestrator-row",
+        "name": "Execute WF-001 for Batch",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1,
+        "position": [
+          920,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "CSV Upload Webhook": {
+        "main": [
+          [
+            {
+              "node": "Parse CSV Rows & Map Fields",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse CSV Rows & Map Fields": {
+        "main": [
+          [
+            {
+              "node": "Loop Over CSV Batches",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over CSV Batches": {
+        "main": [
+          [
+            {
+              "node": "Execute WF-001 for Batch",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Execute WF-001 for Batch": {
+        "main": [
+          [
+            {
+              "node": "Loop Over CSV Batches",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-003-csv-search-trigger"
+  },
+  {
+    "name": "WF-004-Scheduled-Hourly-Search",
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "hours",
+                "hoursInterval": 1
+              }
+            ]
+          }
+        },
+        "id": "hourly-cron",
+        "name": "Hourly Search Cron",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "\nSELECT id, profile_name, target_roles, must_have_skills, locations, work_modes, batch_size\nFROM jobs.search_profiles\nWHERE is_active = true AND hourly_monitoring_enabled = true;\n"
+        },
+        "id": "get-active-profiles",
+        "name": "Query Active Search Profiles",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          440,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "batchSize": 1,
+          "options": {}
+        },
+        "id": "loop-profiles",
+        "name": "Loop Profiles",
+        "type": "n8n-nodes-base.splitInBatches",
+        "typeVersion": 3,
+        "position": [
+          680,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": "wf-001-search-orchestrator",
+          "options": {}
+        },
+        "id": "trigger-hourly-run",
+        "name": "Run Incremental Search",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1,
+        "position": [
+          920,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Hourly Search Cron": {
+        "main": [
+          [
+            {
+              "node": "Query Active Search Profiles",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Query Active Search Profiles": {
+        "main": [
+          [
+            {
+              "node": "Loop Profiles",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Profiles": {
+        "main": [
+          [
+            {
+              "node": "Run Incremental Search",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Run Incremental Search": {
+        "main": [
+          [
+            {
+              "node": "Loop Profiles",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-004-scheduled-hourly-search"
+  },
+  {
+    "name": "WF-005-Job-Source-Router",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "subwf-trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          200,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "\nSELECT source_id, is_enabled, is_rate_limited\nFROM jobs.source_health\nWHERE is_enabled = true;\n"
+        },
+        "id": "check-source-health",
+        "name": "Check Source Health Registry",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          440,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": "wf-010-google-jobs",
+          "options": {}
+        },
+        "id": "call-google-jobs",
+        "name": "Adapter: Google Jobs",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1,
+        "position": [
+          700,
+          160
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": "wf-011-adzuna",
+          "options": {}
+        },
+        "id": "call-adzuna",
+        "name": "Adapter: Adzuna",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1,
+        "position": [
+          700,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": "wf-013-greenhouse",
+          "options": {}
+        },
+        "id": "call-greenhouse",
+        "name": "Adapter: Greenhouse",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1,
+        "position": [
+          700,
+          440
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": "wf-022-additional-source-adapters",
+          "options": {}
+        },
+        "id": "call-additional-adapters",
+        "name": "Adapter: Additional Feeds",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1,
+        "position": [
+          700,
+          580
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "combine",
+          "combinationMode": "mergeByPosition",
+          "options": {}
+        },
+        "id": "merge-source-results",
+        "name": "Merge All Sources",
+        "type": "n8n-nodes-base.merge",
+        "typeVersion": 3,
+        "position": [
+          960,
+          360
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Check Source Health Registry",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Source Health Registry": {
+        "main": [
+          [
+            {
+              "node": "Adapter: Google Jobs",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Adapter: Adzuna",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Adapter: Greenhouse",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Adapter: Additional Feeds",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Adapter: Google Jobs": {
+        "main": [
+          [
+            {
+              "node": "Merge All Sources",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Adapter: Adzuna": {
+        "main": [
+          [
+            {
+              "node": "Merge All Sources",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Adapter: Greenhouse": {
+        "main": [
+          [
+            {
+              "node": "Merge All Sources",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Adapter: Additional Feeds": {
+        "main": [
+          [
+            {
+              "node": "Merge All Sources",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "id": "wf-005-job-source-router"
+  }
+]

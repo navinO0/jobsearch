@@ -1,0 +1,48 @@
+{
+  "name": "WF-041-Email-Draft",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst input = $input.first()?.json || {};\nconst role = input.job_title || 'Software Engineer';\nconst company = input.company_name || 'Hiring Team';\nconst recipient = input.recruiter_email || input.recruiterEmail;\n\nconst subject = `Application — ${role} — Alex Taylor`;\nconst bodyText = `Hello ${company} Recruiting Team,\\n\\nI am pleased to submit my application for the ${role} role. Attached please find my tailored resume and cover letter detailing my relevant software engineering and systems design experience.\\n\\nThank you for your time and consideration.\\n\\nBest regards,\\nAlex Taylor`;\n\nreturn [{\n  json: {\n    jobId: input.id,\n    recipientEmail: recipient,\n    subject,\n    bodyText,\n    status: 'APPROVAL_REQUIRED'\n  }\n}];\n"
+      },
+      "id": "draft-email",
+      "name": "Create Email Draft Object",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Create Email Draft Object",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "id": "wf-041-email-draft"
+}

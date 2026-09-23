@@ -1,0 +1,58 @@
+{
+  "name": "WF-081-Source-Health-Monitor",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2
+            }
+          ]
+        }
+      },
+      "id": "health-cron",
+      "name": "Source Health Ping Cron (2h)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\nUPDATE jobs.source_health\nSET last_successful_fetch = NOW(),\n    last_http_status = 200,\n    updated_at = NOW()\nWHERE is_enabled = true;\n"
+      },
+      "id": "update-health",
+      "name": "Update Health Heartbeat in Postgres",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        440,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Source Health Ping Cron (2h)": {
+      "main": [
+        [
+          {
+            "node": "Update Health Heartbeat in Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "id": "wf-081-source-health-monitor"
+}

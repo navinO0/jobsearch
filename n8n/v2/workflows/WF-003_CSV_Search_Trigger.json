@@ -1,0 +1,113 @@
+{
+  "name": "WF-003-CSV-Search-Trigger",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "csv-search",
+        "options": {}
+      },
+      "id": "csv-webhook",
+      "name": "CSV Upload Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst body = $input.first()?.json?.body || {};\nconst rows = body.rows || [];\nconst profileName = body.profileName || 'CSV Batch Search';\nreturn rows.map((r, i) => ({\n  json: {\n    index: i + 1,\n    profileName,\n    title: r.job_title || r.title || 'Software Engineer',\n    keywords: r.keywords || '',\n    location: r.location || 'Remote',\n    remoteType: r.remote_type || 'REMOTE',\n    employmentType: r.employment_type || 'Full-time',\n    minSalary: parseFloat(r.min_salary) || 0,\n    currency: r.currency || 'USD',\n    source: r.source || 'all',\n    batchSize: parseInt(r.batch_size, 10) || 10\n  }\n}));\n"
+      },
+      "id": "parse-csv-rows",
+      "name": "Parse CSV Rows & Map Fields",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 5,
+        "options": {}
+      },
+      "id": "loop-csv-rows",
+      "name": "Loop Over CSV Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "wf-001-search-orchestrator",
+        "options": {}
+      },
+      "id": "execute-orchestrator-row",
+      "name": "Execute WF-001 for Batch",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        920,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "CSV Upload Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse CSV Rows & Map Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse CSV Rows & Map Fields": {
+      "main": [
+        [
+          {
+            "node": "Loop Over CSV Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over CSV Batches": {
+      "main": [
+        [
+          {
+            "node": "Execute WF-001 for Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute WF-001 for Batch": {
+      "main": [
+        [
+          {
+            "node": "Loop Over CSV Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "id": "wf-003-csv-search-trigger"
+}

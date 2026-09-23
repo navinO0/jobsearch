@@ -1,0 +1,58 @@
+{
+  "name": "WF-080-Cleanup-Retention",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 7
+            }
+          ]
+        }
+      },
+      "id": "retention-cron",
+      "name": "Weekly Cleanup Cron",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\nDELETE FROM jobs.audit_logs WHERE created_at < NOW() - INTERVAL '90 days';\nDELETE FROM jobs.error_events WHERE resolved = true AND created_at < NOW() - INTERVAL '30 days';\n"
+      },
+      "id": "purge-logs",
+      "name": "Purge Expired Audit & Error Logs",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        440,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Weekly Cleanup Cron": {
+      "main": [
+        [
+          {
+            "node": "Purge Expired Audit & Error Logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "id": "wf-080-cleanup-retention"
+}

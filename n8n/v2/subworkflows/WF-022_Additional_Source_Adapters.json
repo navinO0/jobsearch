@@ -1,0 +1,76 @@
+{
+  "name": "WF-022-Additional-Source-Adapters",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "subwf-trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://jobicy.com/api/v2/remote-jobs?count=10",
+        "options": {
+          "timeout": 12000,
+          "followRedirects": true
+        }
+      },
+      "id": "http-fetch",
+      "name": "Fetch Source API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst items = $input.first()?.json?.jobs || [];\nreturn items.map(j => ({\n  json: {\n    externalId: String(j.id),\n    sourceId: 'jobicy',\n    sourceName: 'Jobicy',\n    title: j.jobTitle,\n    companyName: j.companyName || 'Tech Startup',\n    location: j.jobGeo || 'Remote',\n    remoteType: 'REMOTE',\n    description: j.jobDescription || '',\n    applicationUrl: j.url,\n    postedAt: j.pubDate || new Date().toISOString()\n  }\n}));\n"
+      },
+      "id": "transform-code",
+      "name": "Transform to Normalized Schema",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Source API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Source API": {
+      "main": [
+        [
+          {
+            "node": "Transform to Normalized Schema",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "id": "wf-022-additional-source-adapters"
+}

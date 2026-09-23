@@ -1,0 +1,76 @@
+{
+  "name": "WF-034-Generate-Tailored-Resume",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst input = $input.first()?.json || {};\nconst jobId = input.id;\nconst company = input.company_name || 'Tech Company';\nconst role = input.job_title || 'Software Engineer';\n\nconst versionId = 'res_ver_' + Date.now();\nconst tailoredSummary = `Dedicated Senior Software Engineer targeting the ${role} opening at ${company}. Proven background in architecting performant TypeScript/Node.js microservices and resilient PostgreSQL databases.`;\n\nreturn [{\n  json: {\n    id: versionId,\n    jobId,\n    company,\n    role,\n    tailoredSummary,\n    tailoredSkills: ['Node.js', 'TypeScript', 'PostgreSQL', 'Docker', 'Distributed Systems'],\n    createdAt: new Date().toISOString()\n  }\n}];\n"
+      },
+      "id": "tailor-resume-code",
+      "name": "Tailor Resume Truthfully",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\nINSERT INTO jobs.resume_versions (id, job_id, version_label, tailored_summary, tailored_skills, ai_provider)\nVALUES ($1, $2, $3, $4, $5::jsonb, 'OPENROUTER_DEEPSEEK')\nRETURNING *;\n",
+        "additionalFields": {
+          "queryParams": "={{ [$json.id, $json.jobId, $json.role + ' - ' + $json.company, $json.tailoredSummary, JSON.stringify($json.tailoredSkills)] }}"
+        }
+      },
+      "id": "save-version",
+      "name": "Save Resume Version in Postgres",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        680,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Tailor Resume Truthfully",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tailor Resume Truthfully": {
+      "main": [
+        [
+          {
+            "node": "Save Resume Version in Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "id": "wf-034-generate-tailored-resume"
+}

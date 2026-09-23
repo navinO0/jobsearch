@@ -1,0 +1,158 @@
+{
+  "name": "WF-002-Manual-Search-Webhook",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "manual-search",
+        "options": {}
+      },
+      "id": "manual-webhook",
+      "name": "Manual Search Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "job-url",
+        "options": {}
+      },
+      "id": "job-url-webhook",
+      "name": "Single Job URL Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst body = $input.first()?.json?.body || {};\nconst isUrlMode = !!body.jobUrl;\nreturn [{\n  json: {\n    isUrlMode,\n    jobUrl: body.jobUrl || null,\n    profileId: body.profileId || 'profile_default',\n    query: body.query || '',\n    location: body.location || '',\n    batchSize: body.batchSize || 10\n  }\n}];\n"
+      },
+      "id": "route-request",
+      "name": "Inspect Request Mode",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.isUrlMode }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "is-url-mode",
+      "name": "Is Single Job URL?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        680,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.jobUrl }}",
+        "options": {
+          "timeout": 10000,
+          "followRedirects": true
+        }
+      },
+      "id": "fetch-job-page",
+      "name": "Fetch Job Page (SSRF Protected)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        920,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "wf-001-search-orchestrator",
+        "options": {}
+      },
+      "id": "delegate-orchestrator",
+      "name": "Delegate to WF-001 Orchestrator",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        920,
+        500
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Search Webhook": {
+      "main": [
+        [
+          {
+            "node": "Inspect Request Mode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Single Job URL Webhook": {
+      "main": [
+        [
+          {
+            "node": "Inspect Request Mode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inspect Request Mode": {
+      "main": [
+        [
+          {
+            "node": "Is Single Job URL?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Single Job URL?": {
+      "main": [
+        [
+          {
+            "node": "Fetch Job Page (SSRF Protected)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Delegate to WF-001 Orchestrator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "id": "wf-002-manual-search-webhook"
+}

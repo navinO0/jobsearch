@@ -1,0 +1,119 @@
+{
+  "name": "WF-004-Scheduled-Hourly-Search",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "hourly-cron",
+      "name": "Hourly Search Cron",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\nSELECT id, profile_name, target_roles, must_have_skills, locations, work_modes, batch_size\nFROM jobs.search_profiles\nWHERE is_active = true AND hourly_monitoring_enabled = true;\n"
+      },
+      "id": "get-active-profiles",
+      "name": "Query Active Search Profiles",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "loop-profiles",
+      "name": "Loop Profiles",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "wf-001-search-orchestrator",
+        "options": {}
+      },
+      "id": "trigger-hourly-run",
+      "name": "Run Incremental Search",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        920,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Hourly Search Cron": {
+      "main": [
+        [
+          {
+            "node": "Query Active Search Profiles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Active Search Profiles": {
+      "main": [
+        [
+          {
+            "node": "Loop Profiles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Profiles": {
+      "main": [
+        [
+          {
+            "node": "Run Incremental Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Incremental Search": {
+      "main": [
+        [
+          {
+            "node": "Loop Profiles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "id": "wf-004-scheduled-hourly-search"
+}

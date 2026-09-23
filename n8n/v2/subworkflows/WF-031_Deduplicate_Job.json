@@ -1,0 +1,76 @@
+{
+  "name": "WF-031-Deduplicate-Job",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nreturn $input.all().map(item => {\n  const j = item.json;\n  const companyKey = (j.companyName || '').toLowerCase().replace(/[^a-z0-9]/g, '');\n  const titleKey = (j.normalizedTitle || '').replace(/[^a-z0-9]/g, '');\n  const locKey = (j.location || '').toLowerCase().replace(/[^a-z0-9]/g, '');\n  const fingerprint = `${companyKey}:${titleKey}:${locKey.substring(0, 15)}`;\n  return {\n    json: {\n      ...j,\n      fingerprint\n    }\n  };\n});\n"
+      },
+      "id": "compute-fingerprint",
+      "name": "Compute Multi-Signal Fingerprint",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\nINSERT INTO jobs.jobs (\n  fingerprint, source, source_job_id, company_name, job_title, description,\n  location, remote_type, employment_type, salary_min, salary_max, salary_currency,\n  application_url, skills, recruiter_email, email_confidence, posted_at, status\n)\nVALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::jsonb, $15, $16, $17, 'DISCOVERED')\nON CONFLICT (fingerprint) DO UPDATE SET\n  last_seen_at = NOW(),\n  application_url = COALESCE(EXCLUDED.application_url, jobs.jobs.application_url)\nRETURNING *;\n",
+        "additionalFields": {
+          "queryParams": "={{ [$json.fingerprint, $json.sourceId, $json.externalId, $json.companyName, $json.title, $json.description, $json.location, $json.remoteType, $json.employmentType, $json.salaryMin, $json.salaryMax, $json.salaryCurrency, $json.applicationUrl, JSON.stringify($json.skills), $json.recruiterEmail, $json.emailConfidence, $json.postedAt] }}"
+        }
+      },
+      "id": "upsert-job",
+      "name": "Upsert Canonical Job in Postgres",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        680,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Compute Multi-Signal Fingerprint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Multi-Signal Fingerprint": {
+      "main": [
+        [
+          {
+            "node": "Upsert Canonical Job in Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "id": "wf-031-deduplicate-job"
+}

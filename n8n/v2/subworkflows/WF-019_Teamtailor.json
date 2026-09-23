@@ -1,0 +1,76 @@
+{
+  "name": "WF-019-Teamtailor",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "subwf-trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.teamtailor.com/v1/jobs",
+        "options": {
+          "timeout": 12000,
+          "followRedirects": true
+        }
+      },
+      "id": "http-fetch",
+      "name": "Fetch Source API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst items = $input.first()?.json?.data || [];\nreturn items.slice(0, 15).map(j => ({\n  json: {\n    externalId: String(j.id),\n    sourceId: 'teamtailor',\n    sourceName: 'Teamtailor',\n    title: j.attributes?.title || 'Open Position',\n    companyName: 'Partner Company',\n    location: j.attributes?.location || 'Remote',\n    description: j.attributes?.body || '',\n    applicationUrl: j.links?.careersite_job_url,\n    postedAt: j.attributes?.['created-at'] || new Date().toISOString()\n  }\n}));\n"
+      },
+      "id": "transform-code",
+      "name": "Transform to Normalized Schema",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Source API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Source API": {
+      "main": [
+        [
+          {
+            "node": "Transform to Normalized Schema",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "id": "wf-019-teamtailor"
+}

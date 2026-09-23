@@ -1,0 +1,58 @@
+{
+  "name": "WF-073-Retry-DLQ-Handler",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "retry-cron",
+      "name": "Retry DLQ Cron (6h)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\nSELECT id, workflow_name, execution_id, message, retry_count\nFROM jobs.error_events\nWHERE resolved = false AND retry_count < 3;\n"
+      },
+      "id": "fetch-retriable",
+      "name": "Fetch Retriable DLQ Records",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        440,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Retry DLQ Cron (6h)": {
+      "main": [
+        [
+          {
+            "node": "Fetch Retriable DLQ Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "id": "wf-073-retry-dlq-handler"
+}

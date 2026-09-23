@@ -1,0 +1,76 @@
+{
+  "name": "WF-015-Ashby",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "subwf-trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.ashbyhq.com/posting-api/job-board/ramp",
+        "options": {
+          "timeout": 12000,
+          "followRedirects": true
+        }
+      },
+      "id": "http-fetch",
+      "name": "Fetch Source API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst items = $input.first()?.json?.jobs || [];\nreturn items.slice(0, 15).map(j => ({\n  json: {\n    externalId: String(j.id),\n    sourceId: 'ashby',\n    sourceName: 'Ashby',\n    title: j.title,\n    companyName: 'Ramp',\n    location: j.locationName || 'Remote',\n    description: j.descriptionPlain || j.title,\n    applicationUrl: j.jobUrl || ('https://jobs.ashbyhq.com/ramp/' + j.id),\n    postedAt: j.publishedAt || new Date().toISOString()\n  }\n}));\n"
+      },
+      "id": "transform-code",
+      "name": "Transform to Normalized Schema",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Source API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Source API": {
+      "main": [
+        [
+          {
+            "node": "Transform to Normalized Schema",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "id": "wf-015-ashby"
+}

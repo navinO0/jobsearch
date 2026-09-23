@@ -1,0 +1,48 @@
+{
+  "name": "WF-035-Generate-Cover-Letter",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst input = $input.first()?.json || {};\nconst company = input.company_name || 'Hiring Team';\nconst role = input.job_title || 'Software Engineer';\n\nconst coverLetterText = `Dear Hiring Team at ${company},\\n\\nI am writing to express my strong enthusiasm for the ${role} position. With over six years of production engineering experience building resilient distributed systems and optimizing data access layers in TypeScript, Node.js, and PostgreSQL, I am eager to contribute to your engineering milestones.\\n\\nIn my previous projects, I architected high-throughput message processing pipelines and improved database latency metrics significantly while maintaining strict uptime standards. I would welcome the opportunity to discuss how my background aligns with your team's goals.\\n\\nSincerely,\\nAlex Taylor`;\n\nreturn [{\n  json: {\n    jobId: input.id,\n    coverLetterText,\n    created_at: new Date().toISOString()\n  }\n}];\n"
+      },
+      "id": "generate-letter",
+      "name": "Draft Truthful Cover Letter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Draft Truthful Cover Letter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "id": "wf-035-generate-cover-letter"
+}
