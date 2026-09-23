@@ -20,7 +20,8 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
-RUN npm run build
+# Ensure public folder exists for static asset copying
+RUN mkdir -p /app/public && npm run build
 
 # --- Stage 3: Production Minimal Runner ---
 FROM node:20-alpine AS runner
