@@ -1,0 +1,1409 @@
+{
+  "updatedAt": "2026-09-19T02:38:47.173Z",
+  "createdAt": "2026-09-18T19:28:44.044Z",
+  "id": "job-search-unified-v2",
+  "name": "Job Search Unified Pipeline (Raw v2)",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "node-sched",
+      "name": "Schedule Trigger (Hourly)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1100,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "job-search",
+        "responseMode": "onReceived",
+        "responseData": "={{ JSON.stringify({ status: \"ACCEPTED\", run_id: \"run_\" + Date.now(), message: \"Job search pipeline triggered successfully.\" }) }}"
+      },
+      "id": "node-wh",
+      "name": "Webhook Trigger (POST /webhook/job-search)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1100,
+        -40
+      ],
+      "webhookId": "job-pipeline-trigger-uuid"
+    },
+    {
+      "parameters": {},
+      "id": "node-manual",
+      "name": "Manual Trigger (Test)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1100,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst runId = 'run_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);\n\nconst config = {\n  MAX_RESULTS_PER_SOURCE: 15,\n  MAX_REQUESTS_PER_RUN: 10,\n  REQUEST_TIMEOUT: 15000,\n  RETRY_COUNT: 2,\n  RETRY_DELAY: 2000,\n  CONCURRENCY_LIMIT: 3,\n  MIN_MATCH_SCORE: 55,\n  TELEGRAM_RATE_LIMIT_MS: 1500\n};\n\nconst profile = {\n  id: 'default',\n  profile_name: 'Software Engineer / Backend / Full-Stack / DevOps',\n  target_titles: [\n    'software engineer', 'backend engineer', 'full stack engineer',\n    'node.js developer', 'backend developer', 'full stack developer',\n    'devops engineer', 'cloud engineer', 'platform engineer', 'software developer',\n    'systems engineer', 'infrastructure engineer', 'site reliability engineer',\n    'ai engineer', 'applied ai engineer'\n  ],\n  target_keywords: [\n    'software', 'backend', 'full stack', 'fullstack', 'node.js', 'typescript', 'javascript',\n    'postgresql', 'redis', 'docker', 'devops', 'cloud', 'platform', 'engineer', 'developer', 'ai'\n  ],\n  include_keywords: [\n    'node.js', 'typescript', 'react', 'postgresql', 'redis', 'docker', 'rest', 'graphql', 'next.js', 'api', 'python'\n  ],\n  exclude_keywords: [\n    'intern', 'internship', 'unpaid', 'sales representative', 'graphic designer',\n    'accountant', 'legal counsel', 'customer support', 'office manager', 'executive assistant'\n  ],\n  required_skills: ['Node.js', 'TypeScript', 'PostgreSQL', 'Docker'],\n  preferred_skills: ['Redis', 'React', 'Next.js', 'AWS', 'Kubernetes', 'GraphQL', 'CI/CD', 'Fastify', 'Python'],\n  experience_years: 3,\n  education: 'Bachelor of Engineering / Computer Science or equivalent',\n  locations: ['Remote', 'India', 'Bangalore', 'Hyderabad', 'Worldwide', 'London', 'New York', 'San Francisco', 'USA', 'Canada'],\n  remote_preference: true,\n  hybrid_preference: true,\n  onsite_preference: false,\n  employment_types: ['Full-time', 'Contract'],\n  notice_period: 'Immediate to 30 days',\n  salary_min: 0,\n  salary_max: 0,\n  company_preferences: [],\n  company_exclusions: [],\n  industry_preferences: ['Technology', 'SaaS', 'Fintech', 'Cloud'],\n  industry_exclusions: ['Gambling', 'Adult'],\n  technology_stack: ['Node.js', 'TypeScript', 'React', 'PostgreSQL', 'Redis', 'Docker', 'Express', 'Fastify'],\n  target_countries: ['India', 'United States', 'United Kingdom', 'Germany', 'Remote', 'Canada'],\n  target_cities: ['Bangalore', 'Hyderabad', 'Remote'],\n  visa_requirements: 'Not required for Remote / India',\n  relocation_preference: false,\n  min_match_score: 55,\n  telegram_chat_id: '617149298'\n};\n\nreturn [{\n  json: {\n    run_id: runId,\n    started_at: new Date().toISOString(),\n    config: config,\n    profile: profile\n  }\n}];\n"
+      },
+      "id": "node-init",
+      "name": "Initialize Run & Profile",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -860,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ \"INSERT INTO job_runs (run_id, started_at, status, sources_attempted, metadata) VALUES ('\" + $json.run_id + \"', NOW(), 'running', 5, '\" + JSON.stringify({ config: $json.config, profile_id: $json.profile.id }).replace(/'/g, \"''\") + \"'::jsonb) ON CONFLICT (run_id) DO NOTHING RETURNING run_id;\" }}"
+      },
+      "id": "node-log-run",
+      "name": "Log Run Start in Postgres",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -640,
+        -40
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "pgCredDlqAcct01",
+          "name": "Postgres DLQ Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://www.arbeitnow.com/api/job-board-api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "n8n-job-aggregator/1.0"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "node-http-1",
+      "name": "HTTP - Arbeitnow",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -400,
+        -320
+      ],
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst runId = $('Initialize Run & Profile').first()?.json?.run_id || 'unknown';\nconst input = $input.first()?.json;\nconst results = [];\n\ntry {\n  if (!input || input.error) {\n    return [{ json: { is_error: true, source: 'arbeitnow', error: input?.error || 'HTTP error' } }];\n  }\n  const rawJobs = Array.isArray(input.data) ? input.data : [];\n  // Prioritize tech jobs\n  const techJobs = rawJobs.filter(j => /software|engineer|developer|backend|frontend|fullstack|devops|cloud|platform|architect|system|api/i.test(j.title || ''));\n  const candidateList = techJobs.length > 0 ? techJobs : rawJobs;\n\n  for (const j of candidateList.slice(0, 15)) {\n    if (!j.title || !j.url) continue;\n    const cleanDesc = (j.description || '').replace(/<[^>]*>?/gm, ' ').replace(/\\s+/g, ' ').trim().substring(0, 1500);\n    results.push({\n      json: {\n        run_id: runId,\n        source: 'arbeitnow',\n        source_job_id: j.slug || j.url,\n        company_name: j.company_name || 'Unknown',\n        company_domain: null,\n        job_title: j.title.trim(),\n        description: cleanDesc,\n        location: j.location || 'Remote',\n        remote_type: j.remote ? 'Remote' : 'On-site',\n        employment_type: Array.isArray(j.job_types) ? j.job_types.join(', ') : 'Full-time',\n        seniority: null,\n        salary_min: null,\n        salary_max: null,\n        salary_currency: null,\n        posted_at: j.created_at ? new Date(j.created_at * 1000).toISOString() : new Date().toISOString(),\n        updated_at: null,\n        application_url: j.url,\n        canonical_url: j.url,\n        skills: j.tags || [],\n        technologies: j.tags || [],\n        raw_payload: { slug: j.slug, tags: j.tags }\n      }\n    });\n  }\n} catch(e) {\n  return [{ json: { is_error: true, source: 'arbeitnow', error: e.message } }];\n}\nreturn results.length > 0 ? results : [{ json: { is_empty: true, source: 'arbeitnow' } }];\n"
+      },
+      "id": "node-adp-1",
+      "name": "Adapter - Arbeitnow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://jobicy.com/api/v2/remote-jobs?count=25&tag=dev",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "n8n-job-aggregator/1.0"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "node-http-2",
+      "name": "HTTP - Jobicy",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -400,
+        -180
+      ],
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst runId = $('Initialize Run & Profile').first()?.json?.run_id || 'unknown';\nconst input = $input.first()?.json;\nconst results = [];\n\ntry {\n  if (!input || input.error) {\n    return [{ json: { is_error: true, source: 'jobicy', error: input?.error || 'HTTP error' } }];\n  }\n  const rawJobs = Array.isArray(input.jobs) ? input.jobs : [];\n  const techJobs = rawJobs.filter(j => /software|engineer|developer|backend|frontend|fullstack|devops|cloud|platform|architect|system|api/i.test(j.jobTitle || ''));\n  const candidateList = techJobs.length > 0 ? techJobs : rawJobs;\n\n  for (const j of candidateList.slice(0, 15)) {\n    if (!j.jobTitle || !j.url) continue;\n    const cleanDesc = (j.jobExcerpt || j.jobDescription || '').replace(/<[^>]*>?/gm, ' ').replace(/\\s+/g, ' ').trim().substring(0, 1500);\n    results.push({\n      json: {\n        run_id: runId,\n        source: 'jobicy',\n        source_job_id: String(j.id || j.url),\n        company_name: j.companyName || 'Unknown',\n        company_domain: null,\n        job_title: j.jobTitle.trim(),\n        description: cleanDesc,\n        location: j.jobGeo || 'Remote',\n        remote_type: 'Remote',\n        employment_type: Array.isArray(j.jobType) ? j.jobType.join(', ') : (j.jobType || 'Full-time'),\n        seniority: j.jobLevel || null,\n        salary_min: j.salaryMin && !isNaN(j.salaryMin) ? Number(j.salaryMin) : null,\n        salary_max: j.salaryMax && !isNaN(j.salaryMax) ? Number(j.salaryMax) : null,\n        salary_currency: j.salaryCurrency || null,\n        posted_at: j.pubDate ? new Date(j.pubDate).toISOString() : new Date().toISOString(),\n        updated_at: null,\n        application_url: j.url,\n        canonical_url: j.url,\n        skills: j.jobIndustry ? [j.jobIndustry] : [],\n        technologies: [],\n        raw_payload: { id: j.id, jobLevel: j.jobLevel }\n      }\n    });\n  }\n} catch(e) {\n  return [{ json: { is_error: true, source: 'jobicy', error: e.message } }];\n}\nreturn results.length > 0 ? results : [{ json: { is_empty: true, source: 'jobicy' } }];\n"
+      },
+      "id": "node-adp-2",
+      "name": "Adapter - Jobicy",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        -180
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://boards-api.greenhouse.io/v1/boards/gitlab/jobs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "n8n-job-aggregator/1.0"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "node-http-3",
+      "name": "HTTP - Greenhouse",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -400,
+        -40
+      ],
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst runId = $('Initialize Run & Profile').first()?.json?.run_id || 'unknown';\nconst input = $input.first()?.json;\nconst results = [];\n\ntry {\n  if (!input || input.error) {\n    return [{ json: { is_error: true, source: 'greenhouse_gitlab', error: input?.error || 'HTTP error' } }];\n  }\n  const rawJobs = Array.isArray(input.jobs) ? input.jobs : [];\n  const techJobs = rawJobs.filter(j => /software|engineer|developer|backend|frontend|fullstack|devops|cloud|platform|architect|system/i.test(j.title || ''));\n  const candidateList = techJobs.length > 0 ? techJobs : rawJobs;\n\n  for (const j of candidateList.slice(0, 15)) {\n    if (!j.title || !j.absolute_url) continue;\n    const loc = j.location?.name || 'Remote';\n    results.push({\n      json: {\n        run_id: runId,\n        source: 'greenhouse_gitlab',\n        source_job_id: String(j.id),\n        company_name: 'GitLab',\n        company_domain: 'gitlab.com',\n        job_title: j.title.trim(),\n        description: `GitLab position: ${j.title}. Location: ${loc}.`,\n        location: loc,\n        remote_type: loc.toLowerCase().includes('remote') ? 'Remote' : 'Hybrid/On-site',\n        employment_type: 'Full-time',\n        seniority: null,\n        salary_min: null,\n        salary_max: null,\n        salary_currency: null,\n        posted_at: j.first_published ? new Date(j.first_published).toISOString() : (j.updated_at ? new Date(j.updated_at).toISOString() : new Date().toISOString()),\n        updated_at: j.updated_at ? new Date(j.updated_at).toISOString() : null,\n        application_url: j.absolute_url,\n        canonical_url: j.absolute_url,\n        skills: ['DevOps', 'GitLab'],\n        technologies: ['Ruby', 'Go', 'Vue.js', 'PostgreSQL', 'Docker'],\n        raw_payload: { id: j.id }\n      }\n    });\n  }\n} catch(e) {\n  return [{ json: { is_error: true, source: 'greenhouse_gitlab', error: e.message } }];\n}\nreturn results.length > 0 ? results : [{ json: { is_empty: true, source: 'greenhouse_gitlab' } }];\n"
+      },
+      "id": "node-adp-3",
+      "name": "Adapter - Greenhouse",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.ashbyhq.com/posting-api/job-board/ramp",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "n8n-job-aggregator/1.0"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "node-http-4",
+      "name": "HTTP - Ashby",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -400,
+        100
+      ],
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst runId = $('Initialize Run & Profile').first()?.json?.run_id || 'unknown';\nconst input = $input.first()?.json;\nconst results = [];\n\ntry {\n  if (!input || input.error) {\n    return [{ json: { is_error: true, source: 'ashby_ramp', error: input?.error || 'HTTP error' } }];\n  }\n  const rawJobs = Array.isArray(input.jobs) ? input.jobs : [];\n  const techJobs = rawJobs.filter(j => /software|engineer|developer|backend|frontend|fullstack|devops|cloud|platform|architect|system|data/i.test(j.title || ''));\n  const candidateList = techJobs.length > 0 ? techJobs : rawJobs;\n\n  for (const j of candidateList.slice(0, 15)) {\n    if (!j.title || (!j.jobUrl && !j.applyUrl)) continue;\n    const cleanDesc = (j.descriptionPlain || j.descriptionHtml || '').replace(/<[^>]*>?/gm, ' ').replace(/\\s+/g, ' ').trim().substring(0, 1500);\n    const targetUrl = j.applyUrl || j.jobUrl;\n    results.push({\n      json: {\n        run_id: runId,\n        source: 'ashby_ramp',\n        source_job_id: String(j.id),\n        company_name: 'Ramp',\n        company_domain: 'ramp.com',\n        job_title: j.title.trim(),\n        description: cleanDesc || `Ramp position: ${j.title}`,\n        location: j.location || 'Remote',\n        remote_type: j.isRemote ? 'Remote' : (j.workplaceType || 'Hybrid'),\n        employment_type: j.employmentType || 'Full-time',\n        seniority: j.team || null,\n        salary_min: null,\n        salary_max: null,\n        salary_currency: null,\n        posted_at: j.publishedAt ? new Date(j.publishedAt).toISOString() : new Date().toISOString(),\n        updated_at: null,\n        application_url: targetUrl,\n        canonical_url: j.jobUrl || targetUrl,\n        skills: [j.department || 'Engineering'],\n        technologies: ['Python', 'TypeScript', 'PostgreSQL', 'AWS'],\n        raw_payload: { id: j.id }\n      }\n    });\n  }\n} catch(e) {\n  return [{ json: { is_error: true, source: 'ashby_ramp', error: e.message } }];\n}\nreturn results.length > 0 ? results : [{ json: { is_empty: true, source: 'ashby_ramp' } }];\n"
+      },
+      "id": "node-adp-4",
+      "name": "Adapter - Ashby",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.lever.co/v0/postings/palantir?mode=json",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "n8n-job-aggregator/1.0"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "node-http-5",
+      "name": "HTTP - Lever",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -400,
+        240
+      ],
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst runId = $('Initialize Run & Profile').first()?.json?.run_id || 'unknown';\nconst input = $input.first()?.json;\nconst results = [];\n\ntry {\n  if (!input || input.error) {\n    return [{ json: { is_error: true, source: 'lever_palantir', error: input?.error || 'HTTP error' } }];\n  }\n  const rawJobs = Array.isArray(input) ? input : [];\n  const techJobs = rawJobs.filter(j => /software|engineer|developer|backend|frontend|fullstack|devops|cloud|platform|architect|system/i.test(j.text || ''));\n  const candidateList = techJobs.length > 0 ? techJobs : rawJobs;\n\n  for (const j of candidateList.slice(0, 15)) {\n    if (!j.text || (!j.hostedUrl && !j.applyUrl)) continue;\n    const cleanDesc = (j.descriptionPlain || j.description || '').replace(/<[^>]*>?/gm, ' ').replace(/\\s+/g, ' ').trim().substring(0, 1500);\n    const targetUrl = j.applyUrl || j.hostedUrl;\n    results.push({\n      json: {\n        run_id: runId,\n        source: 'lever_palantir',\n        source_job_id: String(j.id),\n        company_name: 'Palantir',\n        company_domain: 'palantir.com',\n        job_title: j.text.trim(),\n        description: cleanDesc || `Palantir role: ${j.text}`,\n        location: j.categories?.location || 'Unknown',\n        remote_type: (j.workplaceType || '').toLowerCase().includes('remote') ? 'Remote' : 'On-site',\n        employment_type: j.categories?.commitment || 'Full-time',\n        seniority: j.categories?.team || null,\n        salary_min: null,\n        salary_max: null,\n        salary_currency: null,\n        posted_at: j.createdAt ? new Date(j.createdAt).toISOString() : new Date().toISOString(),\n        updated_at: null,\n        application_url: targetUrl,\n        canonical_url: j.hostedUrl || targetUrl,\n        skills: [j.categories?.team || 'Technology'],\n        technologies: ['Java', 'TypeScript', 'Python'],\n        raw_payload: { id: j.id }\n      }\n    });\n  }\n} catch(e) {\n  return [{ json: { is_error: true, source: 'lever_palantir', error: e.message } }];\n}\nreturn results.length > 0 ? results : [{ json: { is_empty: true, source: 'lever_palantir' } }];\n"
+      },
+      "id": "node-adp-5",
+      "name": "Adapter - Lever",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=Software%20Engineer&location=India",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "id": "node-http-6",
+      "name": "HTTP - LinkedIn India",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -400,
+        380
+      ],
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst runId = $('Initialize Run & Profile').first()?.json?.run_id || 'unknown';\nconst input = $input.first()?.json;\nconst results = [];\n\ntry {\n  const html = typeof input === 'string' ? input : (input?.data || input?.body || JSON.stringify(input || ''));\n  const itemRegex = /<a class=\"base-card__full-link[^\"]*\" href=\"([^\"]+)\"[^>]*>[\\s\\S]*?<span class=\"sr-only\">([\\s\\S]*?)<\\/span>[\\s\\S]*?<h4 class=\"base-search-card__subtitle\">[\\s\\S]*?>([^<]+)<\\/a>[\\s\\S]*?<span class=\"job-search-card__location\">([^<]+)<\\/span>/g;\n  let match;\n  while ((match = itemRegex.exec(html)) !== null) {\n    const targetUrl = match[1].split('?')[0];\n    const title = match[2].trim();\n    const company = match[3].trim();\n    const location = match[4].trim();\n    const idMatch = targetUrl.match(/-(\\d+)$/);\n    const jobId = idMatch ? idMatch[1] : targetUrl;\n    \n    results.push({\n      json: {\n        run_id: runId,\n        source: 'linkedin_india',\n        source_job_id: jobId,\n        company_name: company,\n        company_domain: 'linkedin.com',\n        job_title: title,\n        description: `LinkedIn India role: ${title} at ${company} in ${location}`,\n        location: location,\n        remote_type: location.toLowerCase().includes('remote') ? 'Remote' : 'On-site',\n        employment_type: 'Full-time',\n        seniority: null,\n        salary_min: null,\n        salary_max: null,\n        salary_currency: 'INR',\n        posted_at: new Date().toISOString(),\n        updated_at: null,\n        application_url: targetUrl,\n        canonical_url: targetUrl,\n        skills: ['Software Engineering'],\n        technologies: ['Backend', 'Cloud'],\n        raw_payload: { url: targetUrl, title, company }\n      }\n    });\n  }\n} catch(e) {\n  return [{ json: { is_error: true, source: 'linkedin_india', error: e.message } }];\n}\nreturn results.length > 0 ? results : [{ json: { is_empty: true, source: 'linkedin_india' } }];\n"
+      },
+      "id": "node-adp-6",
+      "name": "Adapter - LinkedIn India",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://www.instahyre.com/api/v1/job_search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "node-http-7",
+      "name": "HTTP - Instahyre",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -400,
+        520
+      ],
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst runId = $('Initialize Run & Profile').first()?.json?.run_id || 'unknown';\nconst input = $input.first()?.json;\nconst results = [];\n\ntry {\n  if (!input || input.error) {\n    return [{ json: { is_error: true, source: 'instahyre', error: input?.error || 'HTTP error' } }];\n  }\n  const rawJobs = Array.isArray(input.objects) ? input.objects : [];\n  for (const j of rawJobs.slice(0, 15)) {\n    if (!j.title || !j.employer?.company_name) continue;\n    const targetUrl = `https://www.instahyre.com/job-${j.id}`;\n    const loc = j.locations || 'India';\n    results.push({\n      json: {\n        run_id: runId,\n        source: 'instahyre',\n        source_job_id: String(j.id),\n        company_name: j.employer.company_name,\n        company_domain: j.employer.company_url || null,\n        job_title: j.title.trim(),\n        description: `Instahyre verified tech position at ${j.employer.company_name} for ${j.title}`,\n        location: loc,\n        remote_type: loc.toLowerCase().includes('work from home') ? 'Remote' : 'On-site',\n        employment_type: 'Full-time',\n        seniority: null,\n        salary_min: null,\n        salary_max: null,\n        salary_currency: 'INR',\n        posted_at: new Date().toISOString(),\n        updated_at: null,\n        application_url: targetUrl,\n        canonical_url: targetUrl,\n        skills: ['Technology', 'Product Engineering'],\n        technologies: ['Backend', 'Fullstack', 'DevOps'],\n        raw_payload: { id: j.id }\n      }\n    });\n  }\n} catch(e) {\n  return [{ json: { is_error: true, source: 'instahyre', error: e.message } }];\n}\nreturn results.length > 0 ? results : [{ json: { is_empty: true, source: 'instahyre' } }];\n"
+      },
+      "id": "node-adp-7",
+      "name": "Adapter - Instahyre",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://remoteok.com/api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "n8n-job-aggregator/1.0"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "node-http-8",
+      "name": "HTTP - RemoteOK",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -400,
+        660
+      ],
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst runId = $('Initialize Run & Profile').first()?.json?.run_id || 'unknown';\nconst input = $input.first()?.json;\nconst results = [];\n\ntry {\n  if (!input || !Array.isArray(input)) {\n    return [{ json: { is_error: true, source: 'remoteok', error: 'Invalid response' } }];\n  }\n  for (const j of input.slice(1, 16)) {\n    if (!j.position || !j.company || !j.url) continue;\n    const targetUrl = j.apply_url || j.url;\n    results.push({\n      json: {\n        run_id: runId,\n        source: 'remoteok',\n        source_job_id: String(j.id),\n        company_name: j.company,\n        company_domain: null,\n        job_title: j.position.trim(),\n        description: (j.description || `Remote role at ${j.company}: ${j.position}`).replace(/<[^>]*>?/gm, ' ').replace(/\\s+/g, ' ').trim().substring(0, 1500),\n        location: j.location || 'Remote (Worldwide)',\n        remote_type: 'Remote',\n        employment_type: 'Full-time',\n        seniority: null,\n        salary_min: j.salary_min || null,\n        salary_max: j.salary_max || null,\n        salary_currency: 'USD',\n        posted_at: j.date ? new Date(j.date).toISOString() : new Date().toISOString(),\n        updated_at: null,\n        application_url: targetUrl,\n        canonical_url: j.url,\n        skills: Array.isArray(j.tags) ? j.tags : ['Remote Tech'],\n        technologies: Array.isArray(j.tags) ? j.tags.slice(0, 5) : [],\n        raw_payload: { id: j.id }\n      }\n    });\n  }\n} catch(e) {\n  return [{ json: { is_error: true, source: 'remoteok', error: e.message } }];\n}\nreturn results.length > 0 ? results : [{ json: { is_empty: true, source: 'remoteok' } }];\n"
+      },
+      "id": "node-adp-8",
+      "name": "Adapter - RemoteOK",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        660
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.smartrecruiters.com/v1/companies/canva/postings?limit=15",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "n8n-job-aggregator/1.0"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "node-http-9",
+      "name": "HTTP - SmartRecruiters",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -400,
+        800
+      ],
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst runId = $('Initialize Run & Profile').first()?.json?.run_id || 'unknown';\nconst input = $input.first()?.json;\nconst results = [];\n\ntry {\n  if (!input || input.error) {\n    return [{ json: { is_error: true, source: 'smartrecruiters', error: input?.error || 'HTTP error' } }];\n  }\n  const rawJobs = Array.isArray(input.content) ? input.content : [];\n  for (const j of rawJobs) {\n    if (!j.name) continue;\n    const targetUrl = `https://jobs.smartrecruiters.com/Canva/${j.id}`;\n    const loc = j.location?.fullLocation || 'Global';\n    results.push({\n      json: {\n        run_id: runId,\n        source: 'smartrecruiters',\n        source_job_id: String(j.id),\n        company_name: 'Canva',\n        company_domain: 'canva.com',\n        job_title: j.name.trim(),\n        description: `Canva opportunity: ${j.name} located in ${loc}`,\n        location: loc,\n        remote_type: j.location?.remote ? 'Remote' : (j.location?.hybrid ? 'Hybrid' : 'On-site'),\n        employment_type: 'Full-time',\n        seniority: null,\n        salary_min: null,\n        salary_max: null,\n        salary_currency: null,\n        posted_at: j.releasedDate ? new Date(j.releasedDate).toISOString() : new Date().toISOString(),\n        updated_at: null,\n        application_url: targetUrl,\n        canonical_url: targetUrl,\n        skills: ['Product Engineering', 'Scale'],\n        technologies: ['TypeScript', 'Java', 'React'],\n        raw_payload: { id: j.id }\n      }\n    });\n  }\n} catch(e) {\n  return [{ json: { is_error: true, source: 'smartrecruiters', error: e.message } }];\n}\nreturn results.length > 0 ? results : [{ json: { is_empty: true, source: 'smartrecruiters' } }];\n"
+      },
+      "id": "node-adp-9",
+      "name": "Adapter - SmartRecruiters",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "append",
+        "numberInputs": 9
+      },
+      "id": "node-merge-sources",
+      "name": "Merge 9 Sources",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        80,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst crypto = require('crypto');\nconst runId = $('Initialize Run & Profile').first()?.json?.run_id || 'unknown';\nconst items = $input.all();\n\nconst seenFingerprints = new Set();\nconst normalizedJobs = [];\n\nfor (const it of items) {\n  const job = it.json;\n  if (!job || job.is_error || job.is_empty || !job.job_title || !job.company_name || !job.application_url) {\n    continue;\n  }\n\n  if (!job.application_url.startsWith('http://') && !job.application_url.startsWith('https://')) {\n    continue;\n  }\n\n  let fingerprintRaw;\n  if (job.source && job.source_job_id) {\n    fingerprintRaw = `${job.source}:${job.source_job_id}`.toLowerCase().trim();\n  } else {\n    const normCompany = (job.company_name || '').toLowerCase().replace(/[^a-z0-9]/g, '');\n    const normTitle = (job.job_title || '').toLowerCase().replace(/[^a-z0-9]/g, '');\n    const normLoc = (job.location || '').toLowerCase().replace(/[^a-z0-9]/g, '');\n    const normUrl = (job.canonical_url || job.application_url || '').toLowerCase().trim();\n    fingerprintRaw = `${normCompany}:${normTitle}:${normLoc}:${normUrl}`;\n  }\n\n  const fp = crypto.createHash('sha256').update(fingerprintRaw).digest('hex');\n  if (seenFingerprints.has(fp)) {\n    continue;\n  }\n  seenFingerprints.add(fp);\n\n  normalizedJobs.push({\n    json: {\n      ...job,\n      run_id: runId,\n      fingerprint: fp\n    }\n  });\n}\n\nreturn normalizedJobs.length > 0 ? normalizedJobs : [{ json: { is_empty: true, run_id: runId } }];\n"
+      },
+      "id": "node-aggregate",
+      "name": "Aggregate & Deduplicate Raw Jobs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.is_empty ? \"SELECT 1 AS skipped;\" : \"INSERT INTO jobs (fingerprint, source, source_job_id, company_name, company_domain, job_title, description, location, remote_type, employment_type, seniority, salary_min, salary_max, salary_currency, posted_at, updated_at, application_url, canonical_url, skills, technologies, raw_payload, run_id, status, match_status, telegram_sent, first_seen_at, last_seen_at) VALUES ('\" + $json.fingerprint + \"', '\" + ($json.source || '').replace(/'/g, \"''\") + \"', '\" + ($json.source_job_id || '').replace(/'/g, \"''\") + \"', '\" + ($json.company_name || '').replace(/'/g, \"''\") + \"', '\" + ($json.company_domain || '').replace(/'/g, \"''\") + \"', '\" + ($json.job_title || '').replace(/'/g, \"''\") + \"', '\" + ($json.description || '').replace(/'/g, \"''\") + \"', '\" + ($json.location || '').replace(/'/g, \"''\") + \"', '\" + ($json.remote_type || '').replace(/'/g, \"''\") + \"', '\" + ($json.employment_type || '').replace(/'/g, \"''\") + \"', '\" + ($json.seniority || '').replace(/'/g, \"''\") + \"', \" + ($json.salary_min !== null && !isNaN($json.salary_min) ? $json.salary_min : 'NULL') + \", \" + ($json.salary_max !== null && !isNaN($json.salary_max) ? $json.salary_max : 'NULL') + \", '\" + ($json.salary_currency || '').replace(/'/g, \"''\") + \"', \" + ($json.posted_at ? \"'\" + $json.posted_at + \"'\" : 'NULL') + \", \" + ($json.updated_at ? \"'\" + $json.updated_at + \"'\" : 'NULL') + \", '\" + ($json.application_url || '').replace(/'/g, \"''\") + \"', '\" + ($json.canonical_url || $json.application_url || '').replace(/'/g, \"''\") + \"', '\" + JSON.stringify($json.skills || []).replace(/'/g, \"''\") + \"'::jsonb, '\" + JSON.stringify($json.technologies || []).replace(/'/g, \"''\") + \"'::jsonb, '\" + JSON.stringify($json.raw_payload || {}).replace(/'/g, \"''\") + \"'::jsonb, '\" + $json.run_id + \"', 'NEW', 'PENDING', FALSE, NOW(), NOW()) ON CONFLICT (fingerprint) DO UPDATE SET last_seen_at = NOW(), run_id = EXCLUDED.run_id RETURNING id, fingerprint, source, job_title, company_name, location, remote_type, employment_type, application_url, description, skills, match_status, telegram_sent, (xmax = 0) AS is_new;\" }}"
+      },
+      "id": "node-upsert",
+      "name": "Postgres Job Upsert",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        560,
+        -40
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "pgCredDlqAcct01",
+          "name": "Postgres DLQ Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst profile = $('Initialize Run & Profile').first()?.json?.profile || {};\nconst runId = $('Initialize Run & Profile').first()?.json?.run_id || 'unknown';\nconst targetTitles = (profile.target_titles || []).map(t => t.toLowerCase());\nconst targetKeywords = (profile.target_keywords || []).map(k => k.toLowerCase());\nconst excludeKeywords = (profile.exclude_keywords || []).map(k => k.toLowerCase());\n\nconst items = $input.all();\nconst candidates = [];\n\nfor (const it of items) {\n  const job = it.json;\n  if (!job.fingerprint || job.skipped) continue;\n\n  // If already notified or already evaluated, skip\n  if (job.telegram_sent === true || job.match_status === 'MATCHED' || job.match_status === 'REJECTED') {\n    continue;\n  }\n\n  const titleLower = (job.job_title || '').toLowerCase();\n\n  // 1. Exclude keywords\n  let excludedReason = null;\n  for (const ex of excludeKeywords) {\n    if (titleLower.includes(ex)) {\n      excludedReason = `Title contains excluded term: '${ex}'`;\n      break;\n    }\n  }\n  if (excludedReason) {\n    continue;\n  }\n\n  // 2. Target title / keyword match\n  const titleMatches = targetTitles.some(t => titleLower.includes(t)) ||\n                       targetKeywords.some(k => titleLower.includes(k));\n\n  if (!titleMatches) {\n    continue;\n  }\n\n  let relevanceScore = 0;\n  // Target title match\n  if (targetTitles.some(t => titleLower.includes(t))) relevanceScore += 15;\n  // Core tech keywords in title\n  if (['software', 'backend', 'full stack', 'fullstack', 'ai engineer', 'platform', 'cloud', 'devops', 'developer'].some(k => titleLower.includes(k))) relevanceScore += 10;\n  // Location preference match\n  const locLower = (job.location || '').toLowerCase();\n  if (job.remote_type === 'Remote' || ['remote', 'india', 'bangalore', 'worldwide', 'usa', 'canada', 'uk'].some(l => locLower.includes(l))) relevanceScore += 5;\n  // Preferred company boost\n  const compLower = (job.company_name || '').toLowerCase();\n  if (['gitlab', 'ramp', 'supabase', 'maintainx'].some(c => compLower.includes(c))) relevanceScore += 5;\n\n  candidates.push({\n    relevance: relevanceScore,\n    json: {\n      ...job,\n      run_id: runId,\n      prefilter_passed: true,\n      has_candidates: true\n    }\n  });\n}\n\nif (candidates.length === 0) {\n  return [{ json: { run_id: runId, has_candidates: false } }];\n}\n\n// Sort candidates descending by relevance heuristic\ncandidates.sort((a, b) => b.relevance - a.relevance);\n\n// Cap candidates for AI evaluation to 3 per run for cost, rate limits, and latency\nreturn candidates.slice(0, 3).map(c => ({ json: c.json }));\n"
+      },
+      "id": "node-filter",
+      "name": "Deterministic Pre-Filter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        780,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c_has_candidates",
+              "leftValue": "={{ $json.has_candidates }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-if-candidates",
+      "name": "Has Candidates?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1000,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "node-loop-candidates",
+      "name": "Loop Over Candidates",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1240,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst profile = $('Initialize Run & Profile').first()?.json?.profile || {};\nconst job = $input.first()?.json;\n\nif (!job || !job.fingerprint) {\n  return [];\n}\n\nconst promptText = `You are a deterministic job-profile matching engine.\nYour job is to compare a candidate profile against a job listing.\nNever invent information.\nUse only information explicitly provided in the profile and job listing.\n\nEvaluate:\n- title relevance\n- required skills\n- preferred skills\n- experience\n- seniority\n- location\n- remote compatibility\n- employment type\n- salary compatibility\n- technology relevance\n- exclusions\n\nReturn valid JSON only.\nDo not return markdown.\nDo not wrap in markdown quotes if possible, or return raw JSON.\nDo not provide unsupported claims.\nIf information is missing, represent that uncertainty explicitly.\nScore the match from 0 to 100 using the provided criteria.\nExplain the score using concise evidence extracted from the job listing.\n\nRequired strict JSON structure:\n{\n  \"match\": true,\n  \"score\": 85,\n  \"reasons\": [\"Concise point 1\", \"Concise point 2\"],\n  \"matched_skills\": [\"Node.js\", \"PostgreSQL\"],\n  \"missing_skills\": [\"Kubernetes\"],\n  \"red_flags\": [],\n  \"seniority_match\": true,\n  \"location_match\": true,\n  \"remote_match\": true,\n  \"title_match\": true,\n  \"application_recommended\": true\n}\n\n--- CANDIDATE PROFILE ---\nTarget Titles: ${(profile.target_titles || []).join(', ')}\nRequired Skills: ${(profile.required_skills || []).join(', ')}\nPreferred Skills: ${(profile.preferred_skills || []).join(', ')}\nExperience: ${profile.experience_years} years\nRemote Preference: ${profile.remote_preference ? 'Remote preferred' : 'Open'}\nTarget Locations: ${(profile.locations || []).join(', ')}\n\n--- JOB LISTING ---\nJob Title: ${job.job_title}\nCompany: ${job.company_name}\nLocation: ${job.location}\nRemote Type: ${job.remote_type}\nEmployment Type: ${job.employment_type}\nDescription Snippet: ${(job.description || '').substring(0, 1500)}\n`;\n\nreturn [{\n  json: {\n    ...job,\n    prompt: promptText\n  }\n}];\n"
+      },
+      "id": "node-prep-prompt",
+      "name": "Prepare AI Matching Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1460,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.prompt }}"
+      },
+      "id": "node-ai-chain",
+      "name": "AI Matcher Chain",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1680,
+        -260
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "deepseek/deepseek-v4-flash-0731:free",
+          "mode": "id"
+        },
+        "responsesApiEnabled": false,
+        "options": {
+          "temperature": 0.1,
+          "timeout": 30000,
+          "maxRetries": 1
+        }
+      },
+      "id": "node-openai-model",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1680,
+        -60
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "pO5CKyifNzZ6seZK",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst minScore = $('Initialize Run & Profile').first()?.json?.profile?.min_match_score || 70;\nlet rawJob = null;\ntry {\n  rawJob = $('Prepare AI Matching Prompt').item?.json;\n} catch (e) {}\nif (!rawJob) {\n  rawJob = $('Prepare AI Matching Prompt').last()?.json || $('Prepare AI Matching Prompt').first()?.json;\n}\nconst aiResponse = $input.first()?.json;\n\nlet parsed = null;\nlet rawText = '';\n\ntry {\n  if (aiResponse && aiResponse.text) {\n    rawText = aiResponse.text;\n  } else if (aiResponse && aiResponse.response) {\n    rawText = aiResponse.response;\n  } else if (aiResponse && typeof aiResponse === 'string') {\n    rawText = aiResponse;\n  } else if (aiResponse && aiResponse.error) {\n    throw new Error(aiResponse.error.message || 'AI request error');\n  }\n\n  let cleanJson = rawText.trim();\n  if (cleanJson.startsWith('```json')) {\n    cleanJson = cleanJson.replace(/^```json\\s*/, '').replace(/\\s*```$/, '');\n  } else if (cleanJson.startsWith('```')) {\n    cleanJson = cleanJson.replace(/^```\\s*/, '').replace(/\\s*```$/, '');\n  }\n\n  const jsonMatch = cleanJson.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    cleanJson = jsonMatch[0];\n  }\n\n  parsed = JSON.parse(cleanJson);\n} catch(e) {\n  return [{\n    json: {\n      ...rawJob,\n      match_status: 'AI_MATCH_ERROR',\n      score: 0,\n      reasons: ['AI parsing error: ' + e.message],\n      matched_skills: [],\n      missing_skills: [],\n      is_qualifying: false\n    }\n  }];\n}\n\nconst score = typeof parsed.score === 'number' ? parsed.score : 0;\nconst isMatch = parsed.match === true && score >= minScore;\nconst matchStatus = isMatch ? 'MATCHED' : 'REJECTED';\n\nreturn [{\n  json: {\n    ...rawJob,\n    match_status: matchStatus,\n    score: score,\n    reasons: Array.isArray(parsed.reasons) ? parsed.reasons : [],\n    matched_skills: Array.isArray(parsed.matched_skills) ? parsed.matched_skills : [],\n    missing_skills: Array.isArray(parsed.missing_skills) ? parsed.missing_skills : [],\n    ai_details: parsed,\n    is_qualifying: isMatch && !rawJob.telegram_sent\n  }\n}];\n"
+      },
+      "id": "node-parse-ai",
+      "name": "Parse & Validate AI Match",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1900,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ \"UPDATE jobs SET profile_match_score = \" + ($json.score || 0) + \", match_reason = '\" + ($json.reasons || []).join('; ').replace(/'/g, \"''\") + \"', match_status = '\" + $json.match_status + \"', match_details = '\" + JSON.stringify($json.ai_details || {}).replace(/'/g, \"''\") + \"'::jsonb WHERE fingerprint = '\" + $json.fingerprint + \"' RETURNING id, fingerprint, job_title, company_name, location, remote_type, employment_type, application_url, profile_match_score, match_reason, match_details, telegram_sent, '\" + $json.is_qualifying + \"' AS is_qualifying;\" }}"
+      },
+      "id": "node-update-ai-db",
+      "name": "Update AI Match in Postgres",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2120,
+        -260
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "pgCredDlqAcct01",
+          "name": "Postgres DLQ Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c_qual_job",
+              "leftValue": "={{ $json.is_qualifying }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-if-qualifying",
+      "name": "Is Qualifying Job?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2340,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst chatId = $('Initialize Run & Profile').first()?.json?.profile?.telegram_chat_id || '617149298';\nconst job = $input.first()?.json;\n\nfunction escapeHtml(str) {\n  if (!str) return '';\n  return String(str)\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;');\n}\n\nconst title = escapeHtml(job.job_title);\nconst company = escapeHtml(job.company_name);\nconst location = escapeHtml(job.location || 'Remote');\nconst remoteType = escapeHtml(job.remote_type || 'Remote');\nconst empType = escapeHtml(job.employment_type || 'Full-time');\nconst score = job.profile_match_score || 0;\nconst reasons = Array.isArray(job.match_details?.reasons) ? job.match_details.reasons : [job.match_reason || 'Profile criteria matched'];\nconst matchedSkills = Array.isArray(job.match_details?.matched_skills) ? job.match_details.matched_skills.join(', ') : '';\nconst missingSkills = Array.isArray(job.match_details?.missing_skills) && job.match_details.missing_skills.length > 0 ? job.match_details.missing_skills.join(', ') : 'None';\nconst appUrl = job.application_url;\n\nlet messageHtml = `\ud83d\ude80 <b>NEW JOB MATCH</b> (Score: <b>${score}/100</b>)\\n\\n`;\nmessageHtml += `\ud83d\udcbc <b>${title}</b>\\n`;\nmessageHtml += `\ud83c\udfe2 <b>${company}</b>\\n`;\nmessageHtml += `\ud83d\udccd <b>${location}</b> (${remoteType})\\n`;\nmessageHtml += `\ud83d\udc54 <b>${empType}</b>\\n\\n`;\n\nmessageHtml += `\ud83c\udfaf <b>Why It Matches:</b>\\n`;\nfor (const r of reasons.slice(0, 3)) {\n  messageHtml += `\u2022 ${escapeHtml(r)}\\n`;\n}\nmessageHtml += `\\n`;\n\nif (matchedSkills) {\n  messageHtml += `\u2705 <b>Matched Skills:</b> ${escapeHtml(matchedSkills)}\\n`;\n}\nif (missingSkills && missingSkills !== 'None') {\n  messageHtml += `\u26a0\ufe0f <b>Missing Skills:</b> ${escapeHtml(missingSkills)}\\n`;\n}\n\nmessageHtml += `\\n\ud83d\udd17 <a href=\"${escapeHtml(appUrl)}\"><b>View & Apply</b></a>\\n`;\nmessageHtml += `<i>Source: ${escapeHtml(job.source || 'Aggregator')} | Ref: ${job.fingerprint.substring(0, 10)}</i>`;\n\n\nconst inline_keyboard = [];\nconst row1 = [];\nrow1.push({ text: \"\u2728 Tailor Resume\", callback_data: `job:${job.id || job.fingerprint}:tailor` });\nif (job.recruiter_email) {\n  row1.push({ text: \"\ud83d\udce7 Draft Email\", callback_data: `job:${job.id || job.fingerprint}:draft_email` });\n}\ninline_keyboard.push(row1);\n\nconst row2 = [];\nif (appUrl) {\n  row2.push({ text: \"\ud83c\udf10 View & Apply\", url: appUrl });\n}\nrow2.push({ text: \"\u274c Dismiss\", callback_data: `job:${job.id || job.fingerprint}:dismiss` });\ninline_keyboard.push(row2);\n\nconst replyMarkup = JSON.stringify({ inline_keyboard });\n\nreturn [{\n  json: {\n    chatId: chatId,\n    messageText: messageHtml,\n    fingerprint: job.fingerprint,\n    job_id: job.id,\n    replyMarkup: replyMarkup\n  }\n}];\n"
+      },
+      "id": "node-fmt-telegram",
+      "name": "Format Telegram Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2560,
+        -360
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.messageText }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML",
+          "reply_markup": "={{ $json.replyMarkup }}"
+        }
+      },
+      "id": "node-send-tg",
+      "name": "Send Telegram Notification",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2780,
+        -360
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "LkqqTXhWHIGUWNAk",
+          "name": "Telegram account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ (($json.result && $json.result.message_id) || $json.message_id) ? \"UPDATE jobs SET telegram_sent = TRUE, telegram_message_id = \" + (($json.result && $json.result.message_id) || $json.message_id) + \", telegram_sent_at = NOW(), telegram_error = NULL, status = 'NOTIFIED' WHERE fingerprint = '\" + ($('Format Telegram Message').item?.json?.fingerprint || $('Format Telegram Message').last()?.json?.fingerprint || $('Format Telegram Message').first().json.fingerprint) + \"' RETURNING id, fingerprint, telegram_sent;\" : \"UPDATE jobs SET telegram_error = '\" + (($json.error && $json.error.message) ? $json.error.message : ($json.description || 'Delivery error')).replace(/'/g, \"''\") + \"' WHERE fingerprint = '\" + ($('Format Telegram Message').item?.json?.fingerprint || $('Format Telegram Message').last()?.json?.fingerprint || $('Format Telegram Message').first().json.fingerprint) + \"' RETURNING id, fingerprint, telegram_sent;\" }}"
+      },
+      "id": "node-conf-tg",
+      "name": "Confirm Telegram in Postgres",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        3000,
+        -360
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "pgCredDlqAcct01",
+          "name": "Postgres DLQ Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "={{ 'job-search:seen:' + ($json.fingerprint || $('Format Telegram Message').item?.json?.fingerprint || $('Format Telegram Message').last()?.json?.fingerprint || $('Format Telegram Message').first().json.fingerprint) }}",
+        "value": "1",
+        "keyType": "string",
+        "expire": true,
+        "ttl": 1209600
+      },
+      "id": "node-set-redis",
+      "name": "Set Redis Seen Key",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        3220,
+        -360
+      ],
+      "credentials": {
+        "redis": {
+          "id": "h2gveUXttlXPkNOf",
+          "name": "Redis account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { run_id: $('Initialize Run & Profile').first()?.json?.run_id } }];"
+      },
+      "id": "node-prep-summary",
+      "name": "Prepare Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ \"UPDATE job_runs SET completed_at = NOW(), status = 'completed', sources_succeeded = 9, jobs_fetched = (SELECT count(*) FROM jobs WHERE run_id = '\" + $('Initialize Run & Profile').first().json.run_id + \"'), jobs_matched = (SELECT count(*) FROM jobs WHERE run_id = '\" + $('Initialize Run & Profile').first().json.run_id + \"' AND match_status = 'MATCHED'), jobs_rejected = (SELECT count(*) FROM jobs WHERE run_id = '\" + $('Initialize Run & Profile').first().json.run_id + \"' AND match_status = 'REJECTED'), telegram_sent = (SELECT count(*) FROM jobs WHERE run_id = '\" + $('Initialize Run & Profile').first().json.run_id + \"' AND telegram_sent = TRUE) WHERE run_id = '\" + $('Initialize Run & Profile').first().json.run_id + \"' RETURNING *;\" }}"
+      },
+      "id": "node-summary",
+      "name": "Final Run Summary",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1620,
+        140
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "pgCredDlqAcct01",
+          "name": "Postgres DLQ Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "job-pipeline-trigger",
+        "responseMode": "onReceived"
+      },
+      "id": "node-legacy-webhook",
+      "name": "Webhook Trigger (Legacy /job-pipeline-trigger)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1100,
+        100
+      ],
+      "webhookId": "legacy-job-trigger"
+    }
+  ],
+  "connections": {
+    "Manual Trigger (Test)": {
+      "main": [
+        [
+          {
+            "node": "Initialize Run & Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initialize Run & Profile": {
+      "main": [
+        [
+          {
+            "node": "Log Run Start in Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Run Start in Postgres": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Arbeitnow",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP - Jobicy",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP - Greenhouse",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP - Ashby",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP - Lever",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP - LinkedIn India",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP - Instahyre",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP - RemoteOK",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP - SmartRecruiters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Arbeitnow": {
+      "main": [
+        [
+          {
+            "node": "Adapter - Arbeitnow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Jobicy": {
+      "main": [
+        [
+          {
+            "node": "Adapter - Jobicy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Greenhouse": {
+      "main": [
+        [
+          {
+            "node": "Adapter - Greenhouse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Ashby": {
+      "main": [
+        [
+          {
+            "node": "Adapter - Ashby",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Lever": {
+      "main": [
+        [
+          {
+            "node": "Adapter - Lever",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - LinkedIn India": {
+      "main": [
+        [
+          {
+            "node": "Adapter - LinkedIn India",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Instahyre": {
+      "main": [
+        [
+          {
+            "node": "Adapter - Instahyre",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - RemoteOK": {
+      "main": [
+        [
+          {
+            "node": "Adapter - RemoteOK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - SmartRecruiters": {
+      "main": [
+        [
+          {
+            "node": "Adapter - SmartRecruiters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adapter - Arbeitnow": {
+      "main": [
+        [
+          {
+            "node": "Merge 9 Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adapter - Jobicy": {
+      "main": [
+        [
+          {
+            "node": "Merge 9 Sources",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Adapter - Greenhouse": {
+      "main": [
+        [
+          {
+            "node": "Merge 9 Sources",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Adapter - Ashby": {
+      "main": [
+        [
+          {
+            "node": "Merge 9 Sources",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Adapter - Lever": {
+      "main": [
+        [
+          {
+            "node": "Merge 9 Sources",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Adapter - LinkedIn India": {
+      "main": [
+        [
+          {
+            "node": "Merge 9 Sources",
+            "type": "main",
+            "index": 5
+          }
+        ]
+      ]
+    },
+    "Adapter - Instahyre": {
+      "main": [
+        [
+          {
+            "node": "Merge 9 Sources",
+            "type": "main",
+            "index": 6
+          }
+        ]
+      ]
+    },
+    "Adapter - RemoteOK": {
+      "main": [
+        [
+          {
+            "node": "Merge 9 Sources",
+            "type": "main",
+            "index": 7
+          }
+        ]
+      ]
+    },
+    "Adapter - SmartRecruiters": {
+      "main": [
+        [
+          {
+            "node": "Merge 9 Sources",
+            "type": "main",
+            "index": 8
+          }
+        ]
+      ]
+    },
+    "Merge 9 Sources": {
+      "main": [
+        [
+          {
+            "node": "Aggregate & Deduplicate Raw Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate & Deduplicate Raw Jobs": {
+      "main": [
+        [
+          {
+            "node": "Postgres Job Upsert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Job Upsert": {
+      "main": [
+        [
+          {
+            "node": "Deterministic Pre-Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deterministic Pre-Filter": {
+      "main": [
+        [
+          {
+            "node": "Has Candidates?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Candidates?": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Candidates",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Candidates": {
+      "main": [
+        [
+          {
+            "node": "Prepare Summary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare AI Matching Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Summary": {
+      "main": [
+        [
+          {
+            "node": "Final Run Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare AI Matching Prompt": {
+      "main": [
+        [
+          {
+            "node": "AI Matcher Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Matcher Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Matcher Chain": {
+      "main": [
+        [
+          {
+            "node": "Parse & Validate AI Match",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse & Validate AI Match": {
+      "main": [
+        [
+          {
+            "node": "Update AI Match in Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update AI Match in Postgres": {
+      "main": [
+        [
+          {
+            "node": "Is Qualifying Job?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Qualifying Job?": {
+      "main": [
+        [
+          {
+            "node": "Format Telegram Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Telegram Message": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram Notification": {
+      "main": [
+        [
+          {
+            "node": "Confirm Telegram in Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirm Telegram in Postgres": {
+      "main": [
+        [
+          {
+            "node": "Set Redis Seen Key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Redis Seen Key": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Trigger (Legacy /job-pipeline-trigger)": {
+      "main": [
+        [
+          {
+            "node": "Initialize Run & Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger (Hourly)": {
+      "main": [
+        [
+          {
+            "node": "Initialize Run & Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Trigger (POST /webhook/job-search)": {
+      "main": [
+        [
+          {
+            "node": "Initialize Run & Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "errorWorkflow": "dlqErrorWorkflow01"
+  },
+  "staticData": {
+    "node:Schedule Trigger (Every 6h)": {
+      "recurrenceRules": [
+        12
+      ]
+    }
+  },
+  "meta": null,
+  "pinData": null,
+  "versionId": "036cd92b-8182-45d3-8595-7220dbd6787e",
+  "activeVersionId": "036cd92b-8182-45d3-8595-7220dbd6787e",
+  "versionCounter": 92,
+  "triggerCount": 2,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-09-18T19:28:44.044Z",
+      "createdAt": "2026-09-18T19:28:44.044Z",
+      "role": "workflow:owner",
+      "workflowId": "jobSearchPipeline01",
+      "projectId": "G5hKbEOa3aSqVwZE",
+      "project": {
+        "updatedAt": "2026-09-20T18:14:52.022Z",
+        "createdAt": "2026-09-18T00:34:28.569Z",
+        "id": "G5hKbEOa3aSqVwZE",
+        "name": "navin 6y.navin@gmail.com <6y.navin@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "2fb83b82-c0d2-4366-ab60-15eee2912c0c"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}
