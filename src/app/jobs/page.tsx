@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import Link from 'next/link';
 import {
   Search,
   Building2,
@@ -16,11 +15,15 @@ import {
   Sparkles,
   Calendar,
   XCircle,
-  Filter,
   RefreshCw,
   Trophy,
-  SlidersHorizontal,
-  ChevronDown
+  Filter,
+  Play,
+  Menu,
+  X,
+  Maximize2,
+  FileText,
+  DollarSign
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -89,6 +92,7 @@ export default function JobsPage() {
   const [remoteType, setRemoteType] = useState('ALL');
   const [minScore, setMinScore] = useState(0);
   const [hideDuplicates, setHideDuplicates] = useState(true);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   // Remarks modal state
   const [editingJob, setEditingJob] = useState<Job | null>(null);
@@ -96,7 +100,14 @@ export default function JobsPage() {
   const [interviewDate, setInterviewDate] = useState('');
   const [savingRemarks, setSavingRemarks] = useState(false);
 
-  // Quick updating tracking
+  // Full description expanded modal
+  const [fullDescJob, setFullDescJob] = useState<Job | null>(null);
+
+  // Pipeline triggering state
+  const [triggering, setTriggering] = useState(false);
+  const [triggerFeedback, setTriggerFeedback] = useState<string | null>(null);
+
+  // Optimistic updating ID
   const [updatingId, setUpdatingId] = useState<number | null>(null);
 
   const fetchJobs = async () => {
@@ -107,7 +118,7 @@ export default function JobsPage() {
       if (activeTab !== 'ALL') params.set('status', activeTab);
       if (remoteType !== 'ALL') params.set('remote_type', remoteType);
       if (minScore > 0) params.set('min_score', minScore.toString());
-      params.set('limit', '50');
+      params.set('limit', '60');
 
       const res = await fetch(`/api/jobs?${params.toString()}`);
       const data = await res.json();
@@ -126,10 +137,9 @@ export default function JobsPage() {
     fetchJobs();
   }, [activeTab, remoteType, minScore]);
 
-  // Handle immediate status update
+  // Handle immediate status update in DB
   const handleUpdateStatus = async (jobId: number, newStatus: string) => {
     setUpdatingId(jobId);
-    // Optimistic UI update
     setJobs((prev) =>
       prev.map((j) => (j.id === jobId ? { ...j, application_status: newStatus } : j))
     );
@@ -142,7 +152,6 @@ export default function JobsPage() {
       });
       const data = await res.json();
       if (data.success) {
-        // Refresh stats
         fetchJobs();
       }
     } catch (e) {
@@ -159,7 +168,7 @@ export default function JobsPage() {
     setInterviewDate(job.interview_date ? job.interview_date.substring(0, 10) : '');
   };
 
-  // Save remarks
+  // Save remarks to DB
   const handleSaveRemarks = async () => {
     if (!editingJob) return;
     setSavingRemarks(true);
@@ -190,7 +199,43 @@ export default function JobsPage() {
     }
   };
 
-  // Client-side strict deduplication
+  // Trigger search pipeline with candidate's resume criteria
+  const handleRunSearchNow = async () => {
+    setTriggering(true);
+    setTriggerFeedback(null);
+    try {
+      const res = await fetch('/api/trigger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'search',
+          profileName: 'Node.js Developer (2 Yrs Exp)',
+          targetRoles: ['Node.js Developer', 'Backend Developer', 'Backend Engineer'],
+          mustHaveSkills: ['Node.js', 'Express', 'PostgreSQL', 'TypeScript'],
+          workMode: 'REMOTE',
+          minSalary: 600000,
+          batchSize: 15,
+          aiMatchThreshold: 70,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTriggerFeedback('Pipeline initiated! Polling all job sources in background...');
+        setTimeout(() => {
+          fetchJobs();
+          setTriggerFeedback(null);
+        }, 4000);
+      } else {
+        setTriggerFeedback('Failed to start pipeline: ' + (data.error || 'Network error'));
+      }
+    } catch (e: any) {
+      setTriggerFeedback('Error: ' + e.message);
+    } finally {
+      setTriggering(false);
+    }
+  };
+
+  // Strict deduplication
   const displayJobs = useMemo(() => {
     if (!hideDuplicates) return jobs;
 
@@ -207,109 +252,154 @@ export default function JobsPage() {
     return deduplicated;
   }, [jobs, hideDuplicates]);
 
+  const navItems = [
+    { id: 'ALL', label: 'All Jobs', icon: Briefcase, count: stats.totalJobs },
+    { id: 'WISHLIST', label: 'Wishlist', icon: Star, count: stats.wishlistCount, color: 'text-amber-400' },
+    { id: 'SAVED', label: 'Mark for Later', icon: Bookmark, count: stats.savedCount, color: 'text-blue-400' },
+    { id: 'APPLIED', label: 'Applied', icon: CheckCircle2, count: stats.appliedCount, color: 'text-emerald-400' },
+    { id: 'INTERVIEW_ATTENDED', label: 'Interviewed', icon: Clock, count: stats.interviewCount, color: 'text-purple-400' },
+    { id: 'OFFERED', label: 'Received Offer', icon: Trophy, color: 'text-yellow-400' },
+    { id: 'REJECTED', label: 'Not Interested', icon: XCircle, color: 'text-slate-500' },
+  ];
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 pb-20 sm:pb-12">
-      {/* Top Mobile Header & Metric Summary */}
-      <header className="sticky top-0 z-30 bg-slate-900/90 backdrop-blur border-b border-slate-800 px-4 py-3 sm:px-6">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-              <Briefcase className="h-6 w-6 text-indigo-400" />
-              Personal Job Tracker
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-400">
-              Matched for Node.js Developer • 2 Yrs Exp
-            </p>
-          </div>
-
-          {/* Quick Metrics Bar (Scrollable on small phones) */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 text-xs">
-            <div className="bg-slate-800/80 px-2.5 py-1.5 rounded-lg border border-slate-700/60 shrink-0">
-              <span className="text-slate-400">Total:</span>{' '}
-              <strong className="text-white">{stats.totalJobs}</strong>
-            </div>
-            <div className="bg-amber-950/40 border border-amber-800/50 px-2.5 py-1.5 rounded-lg shrink-0 text-amber-300">
-              <span>⭐ Wishlist:</span> <strong>{stats.wishlistCount}</strong>
-            </div>
-            <div className="bg-blue-950/40 border border-blue-800/50 px-2.5 py-1.5 rounded-lg shrink-0 text-blue-300">
-              <span>📌 Saved:</span> <strong>{stats.savedCount}</strong>
-            </div>
-            <div className="bg-emerald-950/40 border border-emerald-800/50 px-2.5 py-1.5 rounded-lg shrink-0 text-emerald-300">
-              <span>🚀 Applied:</span> <strong>{stats.appliedCount}</strong>
-            </div>
-            <div className="bg-purple-950/40 border border-purple-800/50 px-2.5 py-1.5 rounded-lg shrink-0 text-purple-300">
-              <span>🎙️ Interview:</span> <strong>{stats.interviewCount}</strong>
-            </div>
-          </div>
+    <div className="flex flex-col lg:flex-row gap-6 min-h-[calc(100vh-5rem)]">
+      {/* Mobile Sidebar Toggle Button */}
+      <div className="lg:hidden flex items-center justify-between bg-slate-900 border border-slate-800 p-3 rounded-xl">
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setMobileNavOpen(!mobileNavOpen)}
+            className="border-slate-700 bg-slate-950 text-slate-200"
+          >
+            {mobileNavOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            <span className="ml-1 text-xs">Categories</span>
+          </Button>
+          <span className="text-xs font-semibold text-slate-200">
+            {navItems.find((n) => n.id === activeTab)?.label || 'All Jobs'}
+          </span>
         </div>
-      </header>
+        <Button
+          size="sm"
+          onClick={handleRunSearchNow}
+          disabled={triggering}
+          className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs h-8 gap-1"
+        >
+          <Play className="h-3 w-3" />
+          <span>{triggering ? 'Running...' : 'Run Search'}</span>
+        </Button>
+      </div>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-4 space-y-4">
-        {/* Responsive Status Filter Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-slate-800/80 scrollbar-none">
-          {[
-            { id: 'ALL', label: 'All Openings', icon: Briefcase },
-            { id: 'WISHLIST', label: 'Wishlist', icon: Star, color: 'text-amber-400' },
-            { id: 'SAVED', label: 'Mark for Later', icon: Bookmark, color: 'text-blue-400' },
-            { id: 'APPLIED', label: 'Applied', icon: CheckCircle2, color: 'text-emerald-400' },
-            { id: 'INTERVIEW_ATTENDED', label: 'Interviewed', icon: Clock, color: 'text-purple-400' },
-            { id: 'OFFERED', label: 'Offered', icon: Trophy, color: 'text-yellow-400' },
-            { id: 'REJECTED', label: 'Not Interested', icon: XCircle, color: 'text-slate-400' },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
+      {/* LEFT NAVBAR (Desktop Sticky Sidebar & Mobile Drawer) */}
+      <aside
+        className={`${
+          mobileNavOpen ? 'block' : 'hidden'
+        } lg:block w-full lg:w-64 shrink-0 space-y-4`}
+      >
+        {/* Candidate Profile Widget */}
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="h-8 w-8 rounded-full bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-bold text-xs border border-indigo-500/30">
+              JS
+            </div>
+            <div>
+              <h3 className="text-xs font-bold text-white leading-tight">My Job Profile</h3>
+              <p className="text-[11px] text-slate-400">Node.js Developer (2y Exp)</p>
+            </div>
+          </div>
+          <p className="text-[11px] text-slate-400 leading-snug">
+            Targeting Backend, REST APIs, TypeScript & PostgreSQL roles.
+          </p>
+
+          <Button
+            size="sm"
+            onClick={handleRunSearchNow}
+            disabled={triggering}
+            className="w-full mt-3 bg-indigo-600 hover:bg-indigo-500 text-white text-xs h-8 gap-1.5 font-medium shadow"
+          >
+            <Play className={`h-3 w-3 ${triggering ? 'animate-spin' : ''}`} />
+            <span>{triggering ? 'Scanning Boards...' : 'Scan Jobs Now'}</span>
+          </Button>
+
+          {triggerFeedback && (
+            <p className="text-[10px] text-emerald-400 mt-2 text-center animate-fade-in">
+              {triggerFeedback}
+            </p>
+          )}
+        </div>
+
+        {/* Categories / Navigation Tabs */}
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-2.5 space-y-1 shadow-sm">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-2.5 py-1">
+            Application Status
+          </p>
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
             return (
               <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-3 py-2 rounded-lg text-xs sm:text-sm font-medium shrink-0 flex items-center gap-1.5 transition-all ${
+                key={item.id}
+                onClick={() => {
+                  setActiveTab(item.id);
+                  setMobileNavOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
                   isActive
                     ? 'bg-indigo-600 text-white shadow'
-                    : 'bg-slate-900 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                    : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
                 }`}
               >
-                <Icon className={`h-3.5 w-3.5 ${tab.color || ''}`} />
-                {tab.label}
+                <div className="flex items-center gap-2">
+                  <Icon className={`h-4 w-4 ${item.color || ''}`} />
+                  <span>{item.label}</span>
+                </div>
+                {item.count !== undefined && item.count > 0 && (
+                  <span
+                    className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                      isActive ? 'bg-indigo-800 text-white' : 'bg-slate-800 text-slate-400'
+                    }`}
+                  >
+                    {item.count}
+                  </span>
+                )}
               </button>
             );
           })}
         </div>
 
-        {/* Filter & Search Bar (Mobile-friendly vertical stack) */}
-        <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-          <div className="sm:col-span-5 relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-            <Input
-              placeholder="Search title, company, skill..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && fetchJobs()}
-              className="pl-9 bg-slate-950 border-slate-800 text-sm h-9"
-            />
-          </div>
+        {/* Global Filters in Sidebar */}
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5 space-y-3 shadow-sm text-xs">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+            Feed Settings
+          </p>
 
-          <div className="grid grid-cols-2 sm:col-span-5 gap-2">
+          <div className="space-y-1">
+            <label className="text-slate-400 text-[11px]">Work Mode</label>
             <Select value={remoteType} onValueChange={setRemoteType}>
-              <SelectTrigger className="bg-slate-950 border-slate-800 text-xs sm:text-sm h-9">
-                <SelectValue placeholder="Work Mode" />
+              <SelectTrigger className="h-8 text-xs bg-slate-950 border-slate-800 text-slate-200">
+                <SelectValue placeholder="All Modes" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-900 border-slate-800 text-slate-100">
+              <SelectContent className="bg-slate-900 border-slate-800 text-slate-200 text-xs">
                 <SelectItem value="ALL">All Modes</SelectItem>
                 <SelectItem value="REMOTE">Remote Only</SelectItem>
                 <SelectItem value="HYBRID">Hybrid</SelectItem>
                 <SelectItem value="ONSITE">Onsite</SelectItem>
               </SelectContent>
             </Select>
+          </div>
 
+          <div className="space-y-1">
+            <label className="text-slate-400 text-[11px]">Minimum Match Score</label>
             <Select
               value={minScore.toString()}
               onValueChange={(val) => setMinScore(parseInt(val, 10))}
             >
-              <SelectTrigger className="bg-slate-950 border-slate-800 text-xs sm:text-sm h-9">
-                <SelectValue placeholder="Match Score" />
+              <SelectTrigger className="h-8 text-xs bg-slate-950 border-slate-800 text-slate-200">
+                <SelectValue placeholder="Any Match" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-900 border-slate-800 text-slate-100">
-                <SelectItem value="0">Any Match %</SelectItem>
+              <SelectContent className="bg-slate-900 border-slate-800 text-slate-200 text-xs">
+                <SelectItem value="0">All Match Scores</SelectItem>
                 <SelectItem value="60">60%+ Match</SelectItem>
                 <SelectItem value="75">75%+ High Match</SelectItem>
                 <SelectItem value="85">85%+ Top Match</SelectItem>
@@ -317,57 +407,68 @@ export default function JobsPage() {
             </Select>
           </div>
 
-          <div className="sm:col-span-2 flex items-center justify-between sm:justify-end gap-2">
-            <label className="flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer select-none">
+          <div className="pt-2 border-t border-slate-800/80">
+            <label className="flex items-center gap-2 text-slate-300 text-xs cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={hideDuplicates}
                 onChange={(e) => setHideDuplicates(e.target.checked)}
                 className="rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-0"
               />
-              No Duplicates
+              <span>Hide Duplicate Records</span>
             </label>
+            <p className="text-[10px] text-slate-500 mt-1">
+              Collapses cross-posted jobs into one.
+            </p>
+          </div>
+        </div>
+      </aside>
+
+      {/* MAIN CONTENT AREA: 3-PER-ROW GRID */}
+      <section className="flex-1 space-y-4 min-w-0">
+        {/* Search Bar & Header */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Input
+              placeholder="Search by role, company, or technology..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && fetchJobs()}
+              className="pl-9 bg-slate-950 border-slate-800 text-xs sm:text-sm h-9"
+            />
+          </div>
+          <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
+            <span className="text-xs text-slate-400">
+              <strong className="text-slate-200">{displayJobs.length}</strong> jobs found
+            </span>
             <Button
               size="sm"
               variant="outline"
               onClick={fetchJobs}
-              className="h-9 border-slate-800 hover:bg-slate-800 text-xs"
+              className="h-9 px-3 border-slate-800 hover:bg-slate-800 text-xs"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </div>
 
-        {/* Results Counter */}
-        <div className="flex items-center justify-between text-xs text-slate-400 px-1">
-          <span>
-            Showing <strong className="text-slate-200">{displayJobs.length}</strong> postings
-            {hideDuplicates && jobs.length > displayJobs.length && (
-              <span className="text-slate-500">
-                {' '}
-                ({jobs.length - displayJobs.length} duplicate cross-posts hidden)
-              </span>
-            )}
-          </span>
-          <span className="text-indigo-400">Target: Node.js / Backend (2y exp)</span>
-        </div>
-
-        {/* Job Cards Feed (Mobile Responsive) */}
+        {/* 3-PER-ROW CARDS GRID */}
         {loading ? (
-          <div className="py-20 text-center space-y-3">
+          <div className="py-24 text-center space-y-3">
             <RefreshCw className="h-8 w-8 text-indigo-400 animate-spin mx-auto" />
-            <p className="text-sm text-slate-400">Loading your matched jobs...</p>
+            <p className="text-xs text-slate-400">Loading your matched postings...</p>
           </div>
         ) : displayJobs.length === 0 ? (
-          <div className="py-16 text-center space-y-3 bg-slate-900/40 border border-slate-800 rounded-xl p-6">
+          <div className="py-20 text-center space-y-3 bg-slate-900/40 border border-slate-800 rounded-xl p-8">
             <Briefcase className="h-10 w-10 text-slate-600 mx-auto" />
-            <h3 className="text-base font-semibold text-slate-200">No jobs found in this tab</h3>
+            <h3 className="text-base font-semibold text-slate-200">No jobs in this category</h3>
             <p className="text-xs text-slate-400 max-w-sm mx-auto">
-              Try adjusting your filter, or switch to the &quot;All Openings&quot; tab to review newly discovered roles.
+              Select another status from the left navbar or click &quot;Scan Jobs Now&quot; to fetch fresh openings.
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {displayJobs.map((job) => {
               const score = job.profile_match_score || 0;
               const isHigh = score >= 75;
@@ -376,98 +477,112 @@ export default function JobsPage() {
               return (
                 <Card
                   key={job.id}
-                  className="bg-slate-900 border-slate-800/80 hover:border-slate-700 transition-all rounded-xl overflow-hidden shadow-sm"
+                  className="bg-slate-900 border-slate-800/80 hover:border-slate-700 transition-all rounded-xl overflow-hidden flex flex-col justify-between shadow-sm"
                 >
-                  <CardContent className="p-4 sm:p-5 space-y-3">
-                    {/* Header: Title + Company + Score */}
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-1 min-w-0">
-                        <h2 className="text-base sm:text-lg font-semibold text-white leading-tight truncate">
+                  <CardContent className="p-4 space-y-3 flex-1 flex flex-col">
+                    {/* Top Row: Company & Match Badge */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <span className="text-xs font-semibold text-indigo-400 flex items-center gap-1 truncate">
+                          <Building2 className="h-3.5 w-3.5 shrink-0" />
+                          {job.company_name}
+                        </span>
+                        <h2 className="text-sm font-bold text-white leading-tight truncate mt-0.5">
                           {job.job_title}
                         </h2>
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
-                          <span className="flex items-center gap-1 font-medium text-slate-300">
-                            <Building2 className="h-3.5 w-3.5 text-slate-500 shrink-0" />
-                            {job.company_name}
-                          </span>
-                          <span>•</span>
-                          <span className="flex items-center gap-1">
-                            <MapPin className="h-3.5 w-3.5 text-slate-500 shrink-0" />
-                            {job.location || 'Remote'}
-                          </span>
-                          <span>•</span>
-                          <Badge
-                            variant="secondary"
-                            className="bg-slate-800 text-slate-300 text-[10px] py-0 px-1.5"
-                          >
-                            {job.remote_type || 'REMOTE'}
-                          </Badge>
-                          <Badge
-                            variant="outline"
-                            className="border-slate-700 text-slate-400 text-[10px] py-0 px-1.5"
-                          >
-                            {job.source}
-                          </Badge>
-                        </div>
                       </div>
-
-                      {/* Match Score Badge */}
                       <div
-                        className={`shrink-0 flex flex-col items-center justify-center rounded-lg px-2.5 py-1 text-center font-bold border ${
+                        className={`shrink-0 flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-bold border ${
                           isHigh
-                            ? 'bg-emerald-950/60 text-emerald-300 border-emerald-800/80'
+                            ? 'bg-emerald-950/60 text-emerald-300 border-emerald-800'
                             : score >= 55
-                            ? 'bg-indigo-950/60 text-indigo-300 border-indigo-800/80'
-                            : 'bg-slate-800/80 text-slate-400 border-slate-700'
+                            ? 'bg-indigo-950/60 text-indigo-300 border-indigo-800'
+                            : 'bg-slate-800 text-slate-400 border-slate-700'
                         }`}
                       >
-                        <span className="text-base sm:text-lg leading-none">{score}%</span>
-                        <span className="text-[9px] uppercase tracking-wider font-medium opacity-80">
-                          Match
-                        </span>
+                        <Sparkles className="h-3 w-3" />
+                        <span>{score}%</span>
                       </div>
                     </div>
 
-                    {/* Matched Highlights / Reasons */}
+                    {/* Metadata Chips */}
+                    <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-400">
+                      <span className="flex items-center gap-1 bg-slate-950 px-2 py-0.5 rounded border border-slate-800/80">
+                        <MapPin className="h-3 w-3 text-slate-500" />
+                        {job.location || 'Remote'}
+                      </span>
+                      <Badge
+                        variant="secondary"
+                        className="bg-slate-950 border border-slate-800 text-[10px] py-0 px-1.5 text-slate-300 font-normal"
+                      >
+                        {job.remote_type || 'REMOTE'}
+                      </Badge>
+                      <Badge
+                        variant="outline"
+                        className="border-slate-800 text-[10px] py-0 px-1.5 text-slate-500 font-normal"
+                      >
+                        {job.source}
+                      </Badge>
+                    </div>
+
+                    {/* Match Reason Callout */}
                     {job.match_reason && (
-                      <div className="text-xs bg-slate-950/60 border border-slate-800/60 rounded-lg p-2.5 text-slate-300 leading-relaxed flex items-start gap-2">
-                        <Sparkles className="h-3.5 w-3.5 text-indigo-400 shrink-0 mt-0.5" />
-                        <span>{job.match_reason}</span>
+                      <div className="text-[11px] bg-slate-950/80 border border-slate-800/80 rounded-lg p-2 text-slate-300 leading-snug">
+                        <strong className="text-indigo-300">Why matched: </strong>
+                        {job.match_reason}
                       </div>
                     )}
 
+                    {/* FULL RAW JOB DESCRIPTION (Not truncated, un-modified) */}
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center justify-between text-[11px] text-slate-400">
+                        <span className="font-semibold text-slate-300 flex items-center gap-1">
+                          <FileText className="h-3 w-3 text-slate-500" />
+                          Raw Job Description
+                        </span>
+                        <button
+                          onClick={() => setFullDescJob(job)}
+                          className="text-[10px] text-indigo-400 hover:text-indigo-300 flex items-center gap-0.5 hover:underline"
+                        >
+                          <Maximize2 className="h-2.5 w-2.5" />
+                          Expand
+                        </button>
+                      </div>
+                      <div className="max-h-48 overflow-y-auto whitespace-pre-wrap text-[11px] text-slate-300 font-sans bg-slate-950 border border-slate-800/80 p-2.5 rounded-lg leading-relaxed select-text scrollbar-thin">
+                        {job.description || 'No raw description text provided by source.'}
+                      </div>
+                    </div>
+
                     {/* User Remarks Callout if present */}
                     {job.remarks && (
-                      <div className="text-xs bg-amber-950/20 border border-amber-800/40 rounded-lg p-2.5 text-amber-200/90 flex items-start justify-between gap-2">
-                        <div className="flex items-start gap-2">
-                          <MessageSquare className="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" />
-                          <div>
-                            <strong className="text-amber-300">My Remarks: </strong>
+                      <div className="text-[11px] bg-amber-950/20 border border-amber-800/40 rounded-lg p-2 text-amber-200">
+                        <div className="flex items-start gap-1.5">
+                          <MessageSquare className="h-3 w-3 text-amber-400 shrink-0 mt-0.5" />
+                          <span className="truncate">
+                            <strong className="text-amber-300">Notes: </strong>
                             {job.remarks}
-                          </div>
+                          </span>
                         </div>
                         {job.interview_date && (
-                          <span className="text-[10px] bg-amber-900/40 px-2 py-0.5 rounded border border-amber-700/50 shrink-0 text-amber-300">
-                            Interview: {new Date(job.interview_date).toLocaleDateString()}
-                          </span>
+                          <p className="text-[10px] text-amber-300 mt-1 pl-4">
+                            📅 Interview: {new Date(job.interview_date).toLocaleDateString()}
+                          </p>
                         )}
                       </div>
                     )}
 
-                    {/* Action Bar (Mobile Responsive Stack/Grid) */}
-                    <div className="pt-2 border-t border-slate-800/60 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-                      {/* Status Selector Dropdown */}
+                    {/* Bottom Action Controls */}
+                    <div className="pt-2 border-t border-slate-800/80 space-y-2 mt-auto">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-400 shrink-0">Status:</span>
                         <Select
                           value={job.application_status || 'NEW'}
                           onValueChange={(val) => handleUpdateStatus(job.id, val)}
                           disabled={isUpdating}
                         >
-                          <SelectTrigger className="h-8 text-xs bg-slate-950 border-slate-700/80 min-w-[140px]">
+                          <SelectTrigger className="h-8 text-[11px] bg-slate-950 border-slate-800 flex-1">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="bg-slate-900 border-slate-800 text-slate-100 text-xs">
+                          <SelectContent className="bg-slate-900 border-slate-800 text-slate-200 text-xs">
                             <SelectItem value="NEW">Unviewed / New</SelectItem>
                             <SelectItem value="WISHLIST">⭐ Wishlist</SelectItem>
                             <SelectItem value="SAVED">📌 Mark for Later</SelectItem>
@@ -478,27 +593,25 @@ export default function JobsPage() {
                           </SelectContent>
                         </Select>
 
-                        {/* Edit Remarks Button */}
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => openRemarksModal(job)}
-                          className="h-8 px-2.5 text-xs text-slate-300 hover:text-white hover:bg-slate-800 flex items-center gap-1.5"
+                          className="h-8 px-2 text-[11px] text-slate-300 hover:bg-slate-800 shrink-0"
                         >
-                          <MessageSquare className="h-3.5 w-3.5 text-slate-400" />
-                          <span>{job.remarks ? 'Edit Remarks' : 'Add Remarks'}</span>
+                          <MessageSquare className="h-3.5 w-3.5 text-slate-400 mr-1" />
+                          {job.remarks ? 'Notes' : '+Note'}
                         </Button>
                       </div>
 
-                      {/* External Apply Button */}
                       <a
                         href={job.application_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors shadow"
+                        className="w-full inline-flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition-colors shadow text-center"
                       >
                         <span>Apply on {job.source || 'Portal'}</span>
-                        <ExternalLink className="h-3.5 w-3.5" />
+                        <ExternalLink className="h-3 w-3" />
                       </a>
                     </div>
                   </CardContent>
@@ -507,30 +620,81 @@ export default function JobsPage() {
             })}
           </div>
         )}
-      </main>
+      </section>
 
-      {/* Modal: Add / Review Remarks and Interview Date */}
+      {/* FULL DESCRIPTION MODAL */}
+      {fullDescJob && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 w-full max-w-2xl max-h-[85vh] flex flex-col space-y-3 shadow-2xl text-slate-100">
+            <div className="flex items-start justify-between border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-white">{fullDescJob.job_title}</h3>
+                <p className="text-xs text-indigo-400 font-medium">
+                  {fullDescJob.company_name} • {fullDescJob.location || 'Remote'}
+                </p>
+              </div>
+              <button
+                onClick={() => setFullDescJob(null)}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-3 bg-slate-950 border border-slate-800/80 rounded-lg text-xs leading-relaxed whitespace-pre-wrap select-text font-sans text-slate-200">
+              {fullDescJob.description}
+            </div>
+
+            <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+              <span className="text-xs text-slate-400">
+                Source: <strong>{fullDescJob.source}</strong>
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setFullDescJob(null)}
+                  className="text-xs text-slate-400"
+                >
+                  Close
+                </Button>
+                <a
+                  href={fullDescJob.application_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-lg"
+                >
+                  <span>Apply Now</span>
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* REMARKS & INTERVIEW MODAL */}
       {editingJob && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150">
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 w-full max-w-md space-y-4 shadow-xl text-slate-100">
             <div>
-              <h3 className="text-base font-semibold text-white">
-                Remarks for {editingJob.job_title}
-              </h3>
-              <p className="text-xs text-slate-400">{editingJob.company_name}</p>
+              <h3 className="text-sm font-bold text-white">Remarks & Interview Notes</h3>
+              <p className="text-xs text-slate-400">
+                {editingJob.job_title} at {editingJob.company_name}
+              </p>
             </div>
 
             <div className="space-y-3">
               <div>
                 <label className="text-xs font-medium text-slate-300 block mb-1">
-                  My Remarks / Interview Notes
+                  Personal Remarks / Review Notes
                 </label>
                 <textarea
                   rows={4}
                   value={remarkText}
                   onChange={(e) => setRemarkText(e.target.value)}
-                  placeholder="e.g. Spoke to recruiter on LinkedIn; Round 1 DSA cleared; Waiting on system design feedback..."
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs sm:text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+                  placeholder="e.g. Attended round 1 with hiring manager; DSA question on graphs; waiting for round 2 schedule..."
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-100 focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
@@ -542,7 +706,7 @@ export default function JobsPage() {
                   type="date"
                   value={interviewDate}
                   onChange={(e) => setInterviewDate(e.target.value)}
-                  className="bg-slate-950 border-slate-800 text-xs sm:text-sm h-9 text-slate-100"
+                  className="bg-slate-950 border-slate-800 text-xs h-9 text-slate-100"
                 />
               </div>
             </div>
