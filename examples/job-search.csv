@@ -1,0 +1,6 @@
+profile_name,job_title,keywords,location,remote_type,employment_type,min_salary,currency,source,batch_size,max_results,posted_within_days
+Senior Backend,Senior Backend Engineer,"Node.js, TypeScript, PostgreSQL, Distributed Systems",Remote,REMOTE,Full-time,120000,USD,all,15,50,7
+Full Stack Lead,Full Stack Engineer,"React, Next.js, Node.js, Tailwind, GraphQL",Bangalore,HYBRID,Full-time,2500000,INR,all,10,30,5
+DevOps Architect,DevOps Engineer,"Kubernetes, Terraform, AWS, CI/CD, Docker",Remote,REMOTE,Full-time,130000,USD,all,10,25,14
+AI Systems Engineer,AI Engineer,"Python, LLM, LangChain, FastAPI, Vector DB",Hyderabad,HYBRID,Full-time,3000000,INR,all,10,30,3
+Node Backend Specialist,Node.js Developer,"Express, Fastify, Redis, Microservices",Remote,REMOTE,Contract,60,USD,all,20,50,7

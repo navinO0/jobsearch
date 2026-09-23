@@ -1,0 +1,38 @@
+services:
+  job-portal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: job-portal:latest
+    container_name: job-seeker-portal
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - DATABASE_HOST=postgresql-ktxhkuiuzp3gnwgrggc15ekz
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=n8n
+      - DATABASE_USER=UZ2Dd4tp4eVRsS22
+      - DATABASE_PASSWORD=TnEHkZif6XMZfHpfx7d6jQCmqUjlkQou
+      - N8N_WEBHOOK_URL=http://10.0.3.3:5678/webhook/job-pipeline-trigger
+      - N8N_RECOVERY_WEBHOOK_URL=http://10.0.3.3:5678/webhook/job-recovery-trigger
+    networks:
+      - ktxhkuiuzp3gnwgrggc15ekz
+      - coolify
+    labels:
+      - "coolify.managed=true"
+      - "coolify.name=job-seeker-portal"
+      - "traefik.enable=true"
+      - "traefik.http.routers.job-portal-http.rule=Host(`jobs.navin.lol`)"
+      - "traefik.http.routers.job-portal-http.entrypoints=http"
+      - "traefik.http.routers.job-portal-https.rule=Host(`jobs.navin.lol`)"
+      - "traefik.http.routers.job-portal-https.entrypoints=https"
+      - "traefik.http.routers.job-portal-https.tls=true"
+      - "traefik.http.routers.job-portal-https.tls.certresolver=letsencrypt"
+      - "traefik.http.services.job-portal.loadbalancer.server.port=3000"
+
+networks:
+  ktxhkuiuzp3gnwgrggc15ekz:
+    external: true
+  coolify:
+    external: true

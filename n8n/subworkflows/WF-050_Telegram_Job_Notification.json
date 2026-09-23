@@ -1,0 +1,71 @@
+{
+  "name": "WF-050-Telegram-Job-Notification",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "subworkflow-trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const job = $input.first()?.json || {};\nconst chatId = job.telegram_chat_id || '617149298';\n\nconst title = job.job_title || 'Software Engineer';\nconst company = job.company_name || 'Tech Company';\nconst location = job.location || 'Remote';\nconst score = job.profile_match_score || 0;\nconst email = job.recruiter_email || 'Not listed';\nconst appUrl = job.application_url || '#';\n\nconst messageText = `🚀 <b>NEW JOB MATCH (${score}% ATS Alignment)</b>\\n\\n` +\n  `💼 <b>${title}</b>\\n` +\n  `🏢 <b>${company}</b>\\n` +\n  `📍 <b>${location}</b> (${job.remote_type || 'REMOTE'})\\n\\n` +\n  `✉️ <b>Recruiter Email:</b> ${email}\\n` +\n  `🔗 <a href=\"${appUrl}\">Apply Directly</a>\\n\\n` +\n  `<i>Reference ID: ${job.fingerprint ? job.fingerprint.substring(0, 10) : job.id}</i>`;\n\n// Opaque inline keyboard buttons - no sensitive tokens transmitted\nconst buttons = [\n  [\n    { text: '📄 Generate Resume', callback_data: `job:${job.id}:resume` },\n    { text: '✉️ Generate Cover', callback_data: `job:${job.id}:cover` }\n  ],\n  [\n    { text: '📦 Full Package', callback_data: `job:${job.id}:package` },\n    { text: '📧 Draft Email', callback_data: `job:${job.id}:email` }\n  ],\n  [\n    { text: '✅ Apply', url: appUrl },\n    { text: '❌ Skip', callback_data: `job:${job.id}:skip` }\n  ]\n];\n\nreturn [{\n  json: {\n    chatId,\n    messageText,\n    replyMarkup: { inline_keyboard: buttons },\n    job_id: job.id\n  }\n}];"
+      },
+      "id": "format-telegram-msg",
+      "name": "Format Telegram Message & Inline Buttons",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.messageText }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "replyMarkup": "={{ JSON.stringify($json.replyMarkup) }}"
+        }
+      },
+      "id": "send-telegram",
+      "name": "Send Rich Telegram Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [680, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "teleAccount1",
+          "name": "Telegram Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Format Telegram Message & Inline Buttons",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Telegram Message & Inline Buttons": {
+      "main": [
+        [
+          {
+            "node": "Send Rich Telegram Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

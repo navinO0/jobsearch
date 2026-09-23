@@ -1,0 +1,99 @@
+{
+  "name": "WF-001-Search-Orchestrator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "job-search",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "hourly-schedule",
+      "name": "Hourly Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 480]
+    },
+    {
+      "parameters": {
+        "jsCode": "const runId = 'run_' + Date.now();\nconst payload = $input.first()?.json?.body || $input.first()?.json || {};\nreturn [{\n  json: {\n    run_id: runId,\n    profile_id: payload.profileId || 'default',\n    sources: payload.sources || ['arbeitnow', 'jobicy', 'greenhouse', 'ashby', 'lever'],\n    batch_size: payload.batchSize || 15,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "init-run",
+      "name": "Initialize Search Run",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 390]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO jobs.job_runs (run_id, started_at, status, sources_attempted, metadata) VALUES ('{{ $json.run_id }}', NOW(), 'running', 5, '{{ JSON.stringify($json) }}') ON CONFLICT DO NOTHING;"
+      },
+      "id": "log-run-pg",
+      "name": "Record Search Run in DB",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [700, 390],
+      "credentials": {
+        "postgres": {
+          "id": "e2U3a1R2x",
+          "name": "PostgreSQL Account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Initialize Search Run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hourly Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Initialize Search Run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initialize Search Run": {
+      "main": [
+        [
+          {
+            "node": "Record Search Run in DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
