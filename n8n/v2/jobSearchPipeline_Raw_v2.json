@@ -47,7 +47,7 @@
     {
       "parameters": {},
       "id": "node-manual",
-      "name": "Manual Trigger (Test)",
+      "name": "Manual Trigger (Test - Node.js 2y Exp)",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
@@ -57,7 +57,7 @@
     },
     {
       "parameters": {
-        "jsCode": "\nconst runId = 'run_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);\n\nconst config = {\n  MAX_RESULTS_PER_SOURCE: 15,\n  MAX_REQUESTS_PER_RUN: 10,\n  REQUEST_TIMEOUT: 15000,\n  RETRY_COUNT: 2,\n  RETRY_DELAY: 2000,\n  CONCURRENCY_LIMIT: 3,\n  MIN_MATCH_SCORE: 55,\n  TELEGRAM_RATE_LIMIT_MS: 1500\n};\n\nconst profile = {\n  id: 'default',\n  profile_name: 'Software Engineer / Backend / Full-Stack / DevOps',\n  target_titles: [\n    'software engineer', 'backend engineer', 'full stack engineer',\n    'node.js developer', 'backend developer', 'full stack developer',\n    'devops engineer', 'cloud engineer', 'platform engineer', 'software developer',\n    'systems engineer', 'infrastructure engineer', 'site reliability engineer',\n    'ai engineer', 'applied ai engineer'\n  ],\n  target_keywords: [\n    'software', 'backend', 'full stack', 'fullstack', 'node.js', 'typescript', 'javascript',\n    'postgresql', 'redis', 'docker', 'devops', 'cloud', 'platform', 'engineer', 'developer', 'ai'\n  ],\n  include_keywords: [\n    'node.js', 'typescript', 'react', 'postgresql', 'redis', 'docker', 'rest', 'graphql', 'next.js', 'api', 'python'\n  ],\n  exclude_keywords: [\n    'intern', 'internship', 'unpaid', 'sales representative', 'graphic designer',\n    'accountant', 'legal counsel', 'customer support', 'office manager', 'executive assistant'\n  ],\n  required_skills: ['Node.js', 'TypeScript', 'PostgreSQL', 'Docker'],\n  preferred_skills: ['Redis', 'React', 'Next.js', 'AWS', 'Kubernetes', 'GraphQL', 'CI/CD', 'Fastify', 'Python'],\n  experience_years: 3,\n  education: 'Bachelor of Engineering / Computer Science or equivalent',\n  locations: ['Remote', 'India', 'Bangalore', 'Hyderabad', 'Worldwide', 'London', 'New York', 'San Francisco', 'USA', 'Canada'],\n  remote_preference: true,\n  hybrid_preference: true,\n  onsite_preference: false,\n  employment_types: ['Full-time', 'Contract'],\n  notice_period: 'Immediate to 30 days',\n  salary_min: 0,\n  salary_max: 0,\n  company_preferences: [],\n  company_exclusions: [],\n  industry_preferences: ['Technology', 'SaaS', 'Fintech', 'Cloud'],\n  industry_exclusions: ['Gambling', 'Adult'],\n  technology_stack: ['Node.js', 'TypeScript', 'React', 'PostgreSQL', 'Redis', 'Docker', 'Express', 'Fastify'],\n  target_countries: ['India', 'United States', 'United Kingdom', 'Germany', 'Remote', 'Canada'],\n  target_cities: ['Bangalore', 'Hyderabad', 'Remote'],\n  visa_requirements: 'Not required for Remote / India',\n  relocation_preference: false,\n  min_match_score: 55,\n  telegram_chat_id: '617149298'\n};\n\nreturn [{\n  json: {\n    run_id: runId,\n    started_at: new Date().toISOString(),\n    config: config,\n    profile: profile\n  }\n}];\n"
+        "jsCode": "\nconst inputData = $input.first()?.json || {};\n\nconst runId = 'run_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);\n\nconst config = {\n  MAX_RESULTS_PER_SOURCE: 15,\n  MAX_REQUESTS_PER_RUN: 10,\n  REQUEST_TIMEOUT: 15000,\n  RETRY_COUNT: 2,\n  RETRY_DELAY: 2000,\n  CONCURRENCY_LIMIT: 3,\n  MIN_MATCH_SCORE: inputData.min_score || 55,\n  TELEGRAM_RATE_LIMIT_MS: 1500\n};\n\n// Target profile: Node.js Developer with 2 years experience\nconst profile = {\n  id: inputData.profile_id || 'node_2y_profile',\n  profile_name: inputData.profile_name || 'Node.js Developer (2 Years Experience)',\n  target_titles: inputData.titles || [\n    'node.js developer', 'backend developer', 'node developer',\n    'backend engineer', 'javascript backend engineer', 'junior to mid node.js developer',\n    'full stack developer (node.js)'\n  ],\n  target_keywords: [\n    'node.js', 'nodejs', 'express', 'backend', 'javascript', 'typescript', 'postgresql', 'rest api'\n  ],\n  include_keywords: [\n    'node.js', 'javascript', 'typescript', 'express', 'postgresql', 'rest', 'api', 'docker', 'redis'\n  ],\n  exclude_keywords: inputData.exclude_keywords || [\n    'intern', 'internship', 'unpaid', 'principal', 'director', 'vp', 'staff engineer', 'lead 8+ years'\n  ],\n  required_skills: ['Node.js', 'Express', 'JavaScript', 'TypeScript', 'PostgreSQL'],\n  preferred_skills: ['Docker', 'Redis', 'Next.js', 'REST APIs', 'Git', 'MongoDB'],\n  experience_years: inputData.experience_years || 2,\n  education: 'Bachelor in Computer Science or equivalent',\n  locations: inputData.locations || ['Remote', 'India', 'Bangalore', 'Bengaluru', 'Hyderabad'],\n  remote_preference: true,\n  hybrid_preference: true,\n  onsite_preference: false,\n  employment_types: ['Full-time', 'Contract'],\n  notice_period: 'Immediate to 30 days',\n  salary_min: inputData.min_salary || 500000,\n  salary_max: inputData.max_salary || 1400000,\n  technology_stack: ['Node.js', 'Express.js', 'TypeScript', 'JavaScript', 'PostgreSQL', 'REST APIs'],\n  min_match_score: 55,\n  telegram_chat_id: inputData.telegram_chat_id || '617149298'\n};\n\nreturn [{\n  json: {\n    run_id: runId,\n    started_at: new Date().toISOString(),\n    config: config,\n    profile: profile,\n    manual_test_payload: inputData\n  }\n}];\n"
       },
       "id": "node-init",
       "name": "Initialize Run & Profile",
@@ -714,7 +714,7 @@
     },
     {
       "parameters": {
-        "jsCode": "\nconst chatId = $('Initialize Run & Profile').first()?.json?.profile?.telegram_chat_id || '617149298';\nconst job = $input.first()?.json;\n\nfunction escapeHtml(str) {\n  if (!str) return '';\n  return String(str)\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;');\n}\n\nconst title = escapeHtml(job.job_title);\nconst company = escapeHtml(job.company_name);\nconst location = escapeHtml(job.location || 'Remote');\nconst remoteType = escapeHtml(job.remote_type || 'Remote');\nconst empType = escapeHtml(job.employment_type || 'Full-time');\nconst score = job.profile_match_score || 0;\nconst reasons = Array.isArray(job.match_details?.reasons) ? job.match_details.reasons : [job.match_reason || 'Profile criteria matched'];\nconst matchedSkills = Array.isArray(job.match_details?.matched_skills) ? job.match_details.matched_skills.join(', ') : '';\nconst missingSkills = Array.isArray(job.match_details?.missing_skills) && job.match_details.missing_skills.length > 0 ? job.match_details.missing_skills.join(', ') : 'None';\nconst appUrl = job.application_url;\n\nlet messageHtml = `\ud83d\ude80 <b>NEW JOB MATCH</b> (Score: <b>${score}/100</b>)\\n\\n`;\nmessageHtml += `\ud83d\udcbc <b>${title}</b>\\n`;\nmessageHtml += `\ud83c\udfe2 <b>${company}</b>\\n`;\nmessageHtml += `\ud83d\udccd <b>${location}</b> (${remoteType})\\n`;\nmessageHtml += `\ud83d\udc54 <b>${empType}</b>\\n\\n`;\n\nmessageHtml += `\ud83c\udfaf <b>Why It Matches:</b>\\n`;\nfor (const r of reasons.slice(0, 3)) {\n  messageHtml += `\u2022 ${escapeHtml(r)}\\n`;\n}\nmessageHtml += `\\n`;\n\nif (matchedSkills) {\n  messageHtml += `\u2705 <b>Matched Skills:</b> ${escapeHtml(matchedSkills)}\\n`;\n}\nif (missingSkills && missingSkills !== 'None') {\n  messageHtml += `\u26a0\ufe0f <b>Missing Skills:</b> ${escapeHtml(missingSkills)}\\n`;\n}\n\nmessageHtml += `\\n\ud83d\udd17 <a href=\"${escapeHtml(appUrl)}\"><b>View & Apply</b></a>\\n`;\nmessageHtml += `<i>Source: ${escapeHtml(job.source || 'Aggregator')} | Ref: ${job.fingerprint.substring(0, 10)}</i>`;\n\n\nconst inline_keyboard = [];\nconst row1 = [];\nrow1.push({ text: \"\u2728 Tailor Resume\", callback_data: `job:${job.id || job.fingerprint}:tailor` });\nif (job.recruiter_email) {\n  row1.push({ text: \"\ud83d\udce7 Draft Email\", callback_data: `job:${job.id || job.fingerprint}:draft_email` });\n}\ninline_keyboard.push(row1);\n\nconst row2 = [];\nif (appUrl) {\n  row2.push({ text: \"\ud83c\udf10 View & Apply\", url: appUrl });\n}\nrow2.push({ text: \"\u274c Dismiss\", callback_data: `job:${job.id || job.fingerprint}:dismiss` });\ninline_keyboard.push(row2);\n\nconst replyMarkup = JSON.stringify({ inline_keyboard });\n\nreturn [{\n  json: {\n    chatId: chatId,\n    messageText: messageHtml,\n    fingerprint: job.fingerprint,\n    job_id: job.id,\n    replyMarkup: replyMarkup\n  }\n}];\n"
+        "jsCode": "\nconst chatId = $('Initialize Run & Profile').first()?.json?.profile?.telegram_chat_id || '617149298';\nconst job = $input.first()?.json;\n\nfunction escapeHtml(str) {\n  if (!str) return '';\n  return String(str)\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;');\n}\n\nconst title = escapeHtml(job.job_title);\nconst company = escapeHtml(job.company_name);\nconst location = escapeHtml(job.location || 'Remote');\nconst remoteType = escapeHtml(job.remote_type || 'Remote');\nconst empType = escapeHtml(job.employment_type || 'Full-time');\nconst score = job.profile_match_score || 0;\nconst reasons = Array.isArray(job.match_details?.reasons) ? job.match_details.reasons : [job.match_reason || 'Profile criteria matched'];\nconst matchedSkills = Array.isArray(job.match_details?.matched_skills) ? job.match_details.matched_skills.join(', ') : '';\nconst missingSkills = Array.isArray(job.match_details?.missing_skills) && job.match_details.missing_skills.length > 0 ? job.match_details.missing_skills.join(', ') : 'None';\nconst appUrl = job.application_url;\n\nlet messageHtml = `\ud83d\ude80 <b>NEW JOB MATCH</b> (Score: <b>${score}/100</b>)\\n\\n`;\nmessageHtml += `\ud83d\udcbc <b>${title}</b>\\n`;\nmessageHtml += `\ud83c\udfe2 <b>${company}</b>\\n`;\nmessageHtml += `\ud83d\udccd <b>${location}</b> (${remoteType})\\n`;\nmessageHtml += `\ud83d\udc54 <b>${empType}</b>\\n\\n`;\n\nmessageHtml += `\ud83c\udfaf <b>Why It Matches:</b>\\n`;\nfor (const r of reasons.slice(0, 3)) {\n  messageHtml += `\u2022 ${escapeHtml(r)}\\n`;\n}\nmessageHtml += `\\n`;\n\nif (matchedSkills) {\n  messageHtml += `\u2705 <b>Matched Skills:</b> ${escapeHtml(matchedSkills)}\\n`;\n}\nif (missingSkills && missingSkills !== 'None') {\n  messageHtml += `\u26a0\ufe0f <b>Missing Skills:</b> ${escapeHtml(missingSkills)}\\n`;\n}\n\nmessageHtml += `\\n\ud83d\udd17 <a href=\"${escapeHtml(appUrl)}\"><b>View & Apply</b></a>\\n`;\nmessageHtml += `<i>Source: ${escapeHtml(job.source || 'Aggregator')} | Ref: ${job.fingerprint.substring(0, 10)}</i>`;\n\nreturn [{\n  json: {\n    chatId: chatId,\n    messageText: messageHtml,\n    fingerprint: job.fingerprint,\n    job_id: job.id\n  }\n}];\n"
       },
       "id": "node-fmt-telegram",
       "name": "Format Telegram Message",
@@ -850,7 +850,18 @@
     }
   ],
   "connections": {
-    "Manual Trigger (Test)": {
+    "Schedule Trigger (Every 6h)": {
+      "main": [
+        [
+          {
+            "node": "Initialize Run & Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Trigger": {
       "main": [
         [
           {
@@ -1340,18 +1351,7 @@
         ]
       ]
     },
-    "Schedule Trigger (Hourly)": {
-      "main": [
-        [
-          {
-            "node": "Initialize Run & Profile",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Webhook Trigger (POST /webhook/job-search)": {
+    "Manual Trigger (Test - Node.js 2y Exp)": {
       "main": [
         [
           {
@@ -1377,7 +1377,50 @@
     }
   },
   "meta": null,
-  "pinData": null,
+  "pinData": {
+    "Manual Trigger (Test - Node.js 2y Exp)": [
+      {
+        "profile_name": "Node.js Developer (2 Years Experience)",
+        "role": "Node.js Developer",
+        "experience_years": 2,
+        "titles": [
+          "Node.js Developer",
+          "Backend Developer",
+          "Backend Engineer"
+        ],
+        "skills": [
+          "Node.js",
+          "Express",
+          "TypeScript",
+          "JavaScript",
+          "PostgreSQL",
+          "REST APIs"
+        ],
+        "locations": [
+          "Remote",
+          "Bengaluru",
+          "Hyderabad"
+        ],
+        "remote_preference": "REMOTE",
+        "min_salary": 600000,
+        "currency": "INR",
+        "test_job_sample": {
+          "title": "Node.js Developer (2+ Years)",
+          "company": "Tech Solutions Pvt Ltd",
+          "location": "Remote / India",
+          "experience_required": "2 years",
+          "skills": [
+            "Node.js",
+            "Express",
+            "PostgreSQL",
+            "TypeScript"
+          ],
+          "description": "We are hiring a Node.js Developer with 2 years experience building robust RESTful microservices and APIs using Express, Node.js, and PostgreSQL. Apply to careers@techsolutions.io",
+          "recruiter_email": "careers@techsolutions.io"
+        }
+      }
+    ]
+  },
   "versionId": "036cd92b-8182-45d3-8595-7220dbd6787e",
   "activeVersionId": "036cd92b-8182-45d3-8595-7220dbd6787e",
   "versionCounter": 92,

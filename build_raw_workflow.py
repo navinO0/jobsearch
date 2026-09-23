@@ -28,28 +28,73 @@ for n in wf['nodes']:
             'responseData': '={{ JSON.stringify({ status: "ACCEPTED", run_id: "run_" + Date.now(), message: "Job search pipeline triggered successfully." }) }}'
         }
 
-    # Enhance Telegram Message Formatting with inline action buttons
-    if n['name'] == 'Format Telegram Message':
-        js = n['parameters']['jsCode']
-        button_code = """
-const inline_keyboard = [];
-const row1 = [];
-row1.push({ text: "✨ Tailor Resume", callback_data: `job:${job.id || job.fingerprint}:tailor` });
-if (job.recruiter_email) {
-  row1.push({ text: "📧 Draft Email", callback_data: `job:${job.id || job.fingerprint}:draft_email` });
-}
-inline_keyboard.push(row1);
+    # Enhance Manual Trigger with pinned test payload (Node.js with 2 years experience)
+    if n['name'] == 'Manual Trigger (Test)':
+        n['name'] = 'Manual Trigger (Test - Node.js 2y Exp)'
 
-const row2 = [];
-if (appUrl) {
-  row2.push({ text: "🌐 View & Apply", url: appUrl });
-}
-row2.push({ text: "❌ Dismiss", callback_data: `job:${job.id || job.fingerprint}:dismiss` });
-inline_keyboard.push(row2);
+    # Enhance Initialize Run & Profile to default to Node.js 2 years experience
+    if n['name'] == 'Initialize Run & Profile':
+        n['parameters']['jsCode'] = """
+const inputData = $input.first()?.json || {};
 
-const replyMarkup = JSON.stringify({ inline_keyboard });
+const runId = 'run_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+
+const config = {
+  MAX_RESULTS_PER_SOURCE: 15,
+  MAX_REQUESTS_PER_RUN: 10,
+  REQUEST_TIMEOUT: 15000,
+  RETRY_COUNT: 2,
+  RETRY_DELAY: 2000,
+  CONCURRENCY_LIMIT: 3,
+  MIN_MATCH_SCORE: inputData.min_score || 55,
+  TELEGRAM_RATE_LIMIT_MS: 1500
+};
+
+// Target profile: Node.js Developer with 2 years experience
+const profile = {
+  id: inputData.profile_id || 'node_2y_profile',
+  profile_name: inputData.profile_name || 'Node.js Developer (2 Years Experience)',
+  target_titles: inputData.titles || [
+    'node.js developer', 'backend developer', 'node developer',
+    'backend engineer', 'javascript backend engineer', 'junior to mid node.js developer',
+    'full stack developer (node.js)'
+  ],
+  target_keywords: [
+    'node.js', 'nodejs', 'express', 'backend', 'javascript', 'typescript', 'postgresql', 'rest api'
+  ],
+  include_keywords: [
+    'node.js', 'javascript', 'typescript', 'express', 'postgresql', 'rest', 'api', 'docker', 'redis'
+  ],
+  exclude_keywords: inputData.exclude_keywords || [
+    'intern', 'internship', 'unpaid', 'principal', 'director', 'vp', 'staff engineer', 'lead 8+ years'
+  ],
+  required_skills: ['Node.js', 'Express', 'JavaScript', 'TypeScript', 'PostgreSQL'],
+  preferred_skills: ['Docker', 'Redis', 'Next.js', 'REST APIs', 'Git', 'MongoDB'],
+  experience_years: inputData.experience_years || 2,
+  education: 'Bachelor in Computer Science or equivalent',
+  locations: inputData.locations || ['Remote', 'India', 'Bangalore', 'Bengaluru', 'Hyderabad'],
+  remote_preference: true,
+  hybrid_preference: true,
+  onsite_preference: false,
+  employment_types: ['Full-time', 'Contract'],
+  notice_period: 'Immediate to 30 days',
+  salary_min: inputData.min_salary || 500000,
+  salary_max: inputData.max_salary || 1400000,
+  technology_stack: ['Node.js', 'Express.js', 'TypeScript', 'JavaScript', 'PostgreSQL', 'REST APIs'],
+  min_match_score: 55,
+  telegram_chat_id: inputData.telegram_chat_id || '617149298'
+};
+
+return [{
+  json: {
+    run_id: runId,
+    started_at: new Date().toISOString(),
+    config: config,
+    profile: profile,
+    manual_test_payload: inputData
+  }
+}];
 """
-        n['parameters']['jsCode'] = js.replace('return [{', button_code + '\nreturn [{').replace('job_id: job.id', 'job_id: job.id,\n    replyMarkup: replyMarkup')
 
     # Update Send Telegram Notification to include reply_markup
     if n['name'] == 'Send Telegram Notification':
@@ -82,16 +127,39 @@ legacy_webhook = {
     'webhookId': 'legacy-job-trigger'
 }
 wf['nodes'].append(legacy_webhook)
-
-# Connect legacy webhook to Initialize Run & Profile
 wf['connections']['Webhook Trigger (Legacy /job-pipeline-trigger)'] = {
     'main': [[{'node': 'Initialize Run & Profile', 'type': 'main', 'index': 0}]]
 }
-# Rename connection from Schedule Trigger
-if 'Schedule Trigger (Every 6h)' in wf['connections']:
-    wf['connections']['Schedule Trigger (Hourly)'] = wf['connections'].pop('Schedule Trigger (Every 6h)')
-if 'Webhook Trigger' in wf['connections']:
-    wf['connections']['Webhook Trigger (POST /webhook/job-search)'] = wf['connections'].pop('Webhook Trigger')
+
+# Set pinData for Manual Trigger so test data is immediately available when opened
+wf['pinData'] = {
+    'Manual Trigger (Test - Node.js 2y Exp)': [
+        {
+            'profile_name': 'Node.js Developer (2 Years Experience)',
+            'role': 'Node.js Developer',
+            'experience_years': 2,
+            'titles': ['Node.js Developer', 'Backend Developer', 'Backend Engineer'],
+            'skills': ['Node.js', 'Express', 'TypeScript', 'JavaScript', 'PostgreSQL', 'REST APIs'],
+            'locations': ['Remote', 'Bengaluru', 'Hyderabad'],
+            'remote_preference': 'REMOTE',
+            'min_salary': 600000,
+            'currency': 'INR',
+            'test_job_sample': {
+                'title': 'Node.js Developer (2+ Years)',
+                'company': 'Tech Solutions Pvt Ltd',
+                'location': 'Remote / India',
+                'experience_required': '2 years',
+                'skills': ['Node.js', 'Express', 'PostgreSQL', 'TypeScript'],
+                'description': 'We are hiring a Node.js Developer with 2 years experience building robust RESTful microservices and APIs using Express, Node.js, and PostgreSQL. Apply to careers@techsolutions.io',
+                'recruiter_email': 'careers@techsolutions.io'
+            }
+        }
+    ]
+}
+
+# Update connections if Manual Trigger renamed
+if 'Manual Trigger (Test)' in wf['connections']:
+    wf['connections']['Manual Trigger (Test - Node.js 2y Exp)'] = wf['connections'].pop('Manual Trigger (Test)')
 
 print(f'Raw Unified Workflow Nodes: {len(wf["nodes"])}')
 print(f'Connections: {len(wf["connections"])}')
